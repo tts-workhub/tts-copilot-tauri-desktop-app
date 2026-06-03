@@ -1,0 +1,6 @@
+/* Tailwind CSS placeholder - In production, include minified Tailwind CSS here */
+/* This file should contain compiled Tailwind CSS for offline distribution */
+/* 
+   To generate: npm install -D tailwindcss && npx tailwindcss -i ./input.css -o ./public/css/tailwind.min.css
+   For now, CDN fallback will be used if this is missing
+*/

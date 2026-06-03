@@ -1,0 +1,13 @@
+<!-- Placeholder Logo - Replace with actual logo.png -->
+<!-- This SVG serves as a fallback when logo.png is not found -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0A192F;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00F0FF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" fill="url(#grad1)" rx="10"/>
+  <text x="50" y="65" font-family="Arial, sans-serif" font-size="40" font-weight="bold" text-anchor="middle" fill="white">TTS</text>
+  <circle cx="50" cy="50" r="45" fill="none" stroke="#00F0FF" stroke-width="2" opacity="0.3"/>
+</svg>

@@ -1,0 +1,92 @@
+{
+  "build": {
+    "beforeDevCommand": "echo 'Dev mode'",
+    "devPath": "./public",
+    "beforeBuildCommand": "echo 'Building...'",
+    "distDir": "./public"
+  },
+  "package": {
+    "productName": "TTS Copilot",
+    "version": "1.0.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false,
+      "clipboard": {
+        "readText": true,
+        "writeText": true
+      },
+      "dialog": {
+        "open": true,
+        "save": true,
+        "message": true,
+        "ask": true,
+        "confirm": true
+      },
+      "fs": {
+        "all": true,
+        "scope": ["$APPDATA/**", "$DOWNLOADS/**"]
+      },
+      "http": {
+        "all": true,
+        "scope": [
+          "https://generativelanguage.googleapis.com/**",
+          "https://api.openai.com/**",
+          "http://localhost:11434/**"
+        ]
+      },
+      "path": {
+        "all": true
+      },
+      "os": {
+        "all": true
+      },
+      "window": {
+        "all": true
+      }
+    },
+    "bundle": {
+      "active": true,
+      "category": "Productivity",
+      "deb": {
+        "depends": []
+      },
+      "externalBin": [],
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.ico",
+        "icons/icon.png"
+      ],
+      "identifier": "com.tts.copilot",
+      "longDescription": "TTS Copilot - Survey Modeling Suite for Enterprise Administration. Secure, offline-capable AI-powered survey design and analytics.",
+      "macOS": {
+        "frameworks": [],
+        "exceptionDomain": null
+      },
+      "shortDescription": "Enterprise Survey Modeling Suite",
+      "windows": {
+        "digestAlgorithm": "sha256",
+        "timestampUrl": ""
+      }
+    },
+    "security": {
+      "csp": "default-src blob: data: filesystem: ws: wss: http: https: tauri: 'unsafe-inline' 'unsafe-eval' img-src: 'self'"
+    },
+    "windows": [
+      {
+        "fullscreen": false,
+        "height": 900,
+        "resizable": true,
+        "title": "TTS Copilot - Survey Modeling Suite",
+        "width": 1400,
+        "minHeight": 600,
+        "minWidth": 800,
+        "transparent": false,
+        "decorations": true,
+        "visible": true
+      }
+    ]
+  }
+}

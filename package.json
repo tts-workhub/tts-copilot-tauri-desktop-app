@@ -1,0 +1,33 @@
+{
+  "name": "tts-copilot",
+  "version": "1.0.0",
+  "description": "TTS Copilot - Survey Modeling Suite for Enterprise",
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "build:win": "tauri build --target x86_64-pc-windows-msvc",
+    "preview": "vite preview",
+    "test": "vitest",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/api": "^1.5.0",
+    "@tauri-apps/cli": "^1.5.0",
+    "vite": "^5.0.0"
+  },
+  "dependencies": {
+    "html2canvas": "^1.4.1",
+    "tesseract.js": "^5.0.0"
+  },
+  "keywords": [
+    "survey",
+    "modeling",
+    "copilot",
+    "ai",
+    "tauri",
+    "desktop"
+  ],
+  "author": "Tech & Talent Solutions",
+  "license": "MIT"
+}

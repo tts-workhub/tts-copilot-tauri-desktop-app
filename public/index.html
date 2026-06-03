@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS Copilot - Survey Modeling Suite (Enterprise Admin)</title>
+    
+    <!-- Local Tailwind CSS (bundled) -->
+    <link rel="stylesheet" href="/css/tailwind.min.css">
+    <!-- Local FontAwesome Icons -->
+    <link rel="stylesheet" href="/css/fontawesome.min.css">
+    <!-- Local Styles -->
+    <link rel="stylesheet" href="/css/app.css">
+
+    <script>
+        // Safe Tailwind config initialization
+        if (typeof tailwind !== 'undefined') {
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        fontFamily: {
+                            sans: ['Inter', 'system-ui', 'sans-serif'],
+                            mono: ['Courier New', 'monospace'],
+                        },
+                        colors: {
+                            tts: {
+                                dark: '#0A192F',
+                                blue: '#1E3A8A',
+                                cyan: '#00F0FF',
+                                light: '#F8FAFC',
+                                slate: '#0F172A'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-tts-light text-slate-800 font-sans flex flex-col h-screen">
+
+    <!-- AUTHENTICATION CONTAINER -->
+    <div id="auth-view" class="fixed inset-0 bg-tts-dark z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#00F0FF_1px,transparent_1px)] [background-size:16px_16px]"></div>
+        
+        <!-- Login Form -->
+        <div id="card-login" class="bg-slate-900 border border-slate-800 p-8 rounded-2xl w-full max-w-md shadow-2xl relative z-10 fade-in">
+            <div class="text-center mb-8">
+                <img src="/assets/logo.png" alt="TTS Logo" class="h-16 w-16 mx-auto mb-4 object-contain rounded-lg" onerror="this.src='/assets/logo-fallback.svg'">
+                <h2 class="text-2xl font-bold text-white tracking-wide">Tech & Talent Solutions</h2>
+                <p class="text-xs text-slate-400 mt-1">Access your TTS Survey Copilot Instance</p>
+            </div>
+            
+            <form id="form-login" class="space-y-4">
+                <div>
+                    <label class="text-xs font-semibold text-slate-300 block mb-1">Email Address</label>
+                    <input id="login-email" type="email" placeholder="you@company.com" class="w-full px-3 py-2 bg-slate-800 text-white rounded-lg text-xs border border-slate-700 focus:outline-none focus:border-tts-cyan" required>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-300 block mb-1">Secure Password</label>
+                    <input id="login-password" type="password" placeholder="••••••••" class="w-full px-3 py-2 bg-slate-800 text-white rounded-lg text-xs border border-slate-700 focus:outline-none focus:border-tts-cyan" required>
+                </div>
+                
+                <button type="submit" class="w-full py-3 bg-tts-blue hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all shadow-lg hover:shadow-blue-500/10 border border-blue-600 mt-2">
+                    Sign In Securely
+                </button>
+            </form>
+            
+            <p class="text-center text-xs text-slate-400 mt-6">
+                Don't have an account? <button onclick="showAuthCard('register')" type="button" class="text-tts-cyan font-semibold hover:underline">Create Account</button>
+            </p>
+        </div>
+
+        <!-- Register Form -->
+        <div id="card-register" class="bg-slate-900 border border-slate-800 p-8 rounded-2xl w-full max-w-md shadow-2xl relative z-10 hidden fade-in">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-white tracking-wide">Create Account</h2>
+                <p class="text-xs text-slate-400 mt-1">Register new analytics workspace profile</p>
+            </div>
+            
+            <form id="form-register" class="space-y-4">
+                <div>
+                    <label class="text-xs font-semibold text-slate-300 block mb-1">Full Name</label>
+                    <input id="reg-name" type="text" placeholder="John Analyst" class="w-full px-3 py-2 bg-slate-800 text-white rounded-lg text-xs border border-slate-700 focus:outline-none focus:border-tts-cyan" required>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-300 block mb-1">Email Address</label>
+                    <input id="reg-email" type="email" placeholder="you@company.com" class="w-full px-3 py-2 bg-slate-800 text-white rounded-lg text-xs border border-slate-700 focus:outline-none focus:border-tts-cyan" required>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-300 block mb-1">Secure Password (min 8 chars)</label>
+                    <input id="reg-password" type="password" placeholder="••••••••" class="w-full px-3 py-2 bg-slate-800 text-white rounded-lg text-xs border border-slate-700 focus:outline-none focus:border-tts-cyan" minlength="8" required>
+                </div>
+                
+                <button type="submit" class="w-full py-3 bg-tts-blue hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all shadow-lg border border-blue-600 mt-2">
+                    Create Account
+                </button>
+            </form>
+            
+            <p class="text-center text-xs text-slate-400 mt-6">
+                Already registered? <button onclick="showAuthCard('login')" type="button" class="text-tts-cyan font-semibold hover:underline">Log In</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- MAIN WORKSPACE HEADER -->
+    <header class="bg-tts-dark text-white shadow-md z-10 flex-shrink-0 border-b border-slate-800">
+        <div class="px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <img src="/assets/logo.png" alt="TTS" class="h-8 w-8 object-contain" onerror="this.src='/assets/logo-fallback.svg'">
+                <h1 class="text-lg font-bold text-tts-cyan tracking-wider">TTS COPILOT</h1>
+                <span id="workspace-env-badge" class="text-[10px] px-2 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-400">PRODUCTION</span>
+            </div>
+            
+            <!-- User Status Panel -->
+            <div class="flex items-center space-x-3">
+                <div class="text-right text-xs">
+                    <div id="user-display-name" class="font-semibold text-white">Guest</div>
+                    <div id="user-display-id" class="text-slate-400 text-[10px]">Not authenticated</div>
+                </div>
+                <button id="btn-admin-trigger" type="button" class="hidden px-3 py-1.5 bg-amber-900/30 border border-amber-800 text-amber-400 rounded-lg text-xs font-semibold hover:bg-amber-900/50 transition-all" title="Admin Panel">
+                    <i class="fa-solid fa-shield-halved mr-1"></i> Admin
+                </button>
+                <button id="btn-logout" type="button" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold transition-all border border-slate-700">
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i> Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN DASHBOARD CONTENT AREA -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- SIDEBAR / LOCAL PRODUCTS CONTROLLER -->
+        <aside class="w-80 bg-white border-r border-slate-200 flex flex-col flex-shrink-0 z-0 shadow-lg">
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                <!-- Custom Instructions Section -->
+                <div class="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                    <h3 class="text-xs font-bold text-slate-800 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-file-lines text-tts-blue"></i> Survey Design Guidelines
+                    </h3>
+                    <textarea id="editor-instructions" class="w-full h-40 p-2 text-xs border border-slate-300 rounded-lg font-mono bg-white focus:outline-none focus:border-tts-cyan resize-none" placeholder="Add custom survey design guidelines here..."></textarea>
+                    <button id="btn-save-instructions" type="button" class="w-full mt-2 px-3 py-2 bg-tts-blue text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-all">
+                        <i class="fa-solid fa-floppy-disk mr-1"></i> Save Guidelines
+                    </button>
+                </div>
+
+                <!-- File Upload Section -->
+                <div class="border border-slate-200 rounded-lg p-4 bg-slate-50 space-y-3">
+                    <h3 class="text-xs font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-tts-blue"></i> Data Sources
+                    </h3>
+                    
+                    <div>
+                        <label class="text-xs font-semibold text-slate-700 block mb-1">Persona Profile</label>
+                        <input id="persona-upload" type="file" accept=".txt,.json,.md" class="text-xs border border-slate-300 rounded w-full p-1">
+                        <div id="status-persona" class="text-[9px] text-slate-500 mt-1">Ready to upload</div>
+                    </div>
+                    
+                    <div>
+                        <label class="text-xs font-semibold text-slate-700 block mb-1">Knowledge Base</label>
+                        <input id="kb-upload" type="file" accept=".json,.txt" class="text-xs border border-slate-300 rounded w-full p-1">
+                        <div id="status-kb" class="text-[9px] text-slate-500 mt-1">Ready to upload</div>
+                    </div>
+                </div>
+
+                <!-- Query History -->
+                <div class="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-xs font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-history text-tts-blue"></i> Recent Queries
+                        </h3>
+                        <button id="btn-clear-history" type="button" class="text-xs text-slate-500 hover:text-red-500 font-semibold">Clear</button>
+                    </div>
+                    <ul id="history-list" class="space-y-1 text-xs max-h-32 overflow-y-auto">
+                        <li class="text-slate-400 italic text-center p-2">No history yet</li>
+                    </ul>
+                </div>
+
+                <!-- Status Indicators -->
+                <div class="border border-slate-200 rounded-lg p-4 bg-slate-50 text-xs space-y-2">
+                    <h3 class="font-bold text-slate-800">System Status</h3>
+                    <div class="flex justify-between">
+                        <span class="text-slate-600">AI Engine:</span>
+                        <span id="ai-engine-status" class="text-tts-cyan font-mono">Local Sandbox</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-600">Persona:</span>
+                        <span id="lbl-status-persona-state" class="text-slate-400">Missing</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-600">Knowledge Base:</span>
+                        <span id="lbl-status-kb-state" class="text-slate-400">Missing</span>
+                    </div>
+                    <button id="btn-stress-test" type="button" class="w-full mt-3 px-2 py-1.5 bg-slate-200 text-slate-700 rounded text-xs font-semibold hover:bg-slate-300 transition-all">
+                        <i class="fa-solid fa-flask mr-1"></i> Run Diagnostics
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- SECURE SYSTEM CHAT INTERFACE -->
+        <main class="flex-1 flex flex-col bg-slate-50 overflow-hidden relative">
+            
+            <!-- Messages View -->
+            <div id="chat-container" class="flex-1 overflow-y-auto p-6 space-y-6 chat-container pb-6">
+                <div class="flex gap-4 fade-in">
+                    <div class="w-10 h-10 rounded-full bg-tts-dark flex items-center justify-center flex-shrink-0 shadow-sm border border-slate-700">
+                        <i class="fa-solid fa-robot text-tts-cyan text-md"></i>
+                    </div>
+                    <div class="px-5 py-3.5 shadow-sm max-w-[85%] bg-white text-slate-800 border border-slate-200 rounded-2xl rounded-tl-none">
+                        <strong>Welcome to TTS Copilot</strong><br>
+                        <span class="text-sm">Ready to assist with survey design and modeling. All data is processed securely on your device.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Controls -->
+            <div class="w-full bg-white border-t border-slate-200 p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.03)] z-10 flex-shrink-0">
+                <div class="flex gap-3">
+                    <input id="chat-input" type="text" placeholder="Ask TTS Copilot..." class="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-tts-cyan" autofocus>
+                    <button id="btn-get-answer" type="button" class="px-4 py-2 bg-tts-blue hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all" title="Send query (Enter)">
+                        <i class="fa-solid fa-paper-plane mr-1"></i> Send
+                    </button>
+                    <button id="btn-screenshot" type="button" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-sm font-semibold transition-all" title="OCR Screenshot">
+                        <i class="fa-solid fa-camera mr-1"></i> Snap
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MAIN RUNTIME FOOTER -->
+    <footer class="bg-slate-900 text-slate-400 h-10 flex items-center justify-between px-6 flex-shrink-0 border-t border-slate-800 text-[10px]">
+        <div class="flex items-center gap-2">
+            <img src="/assets/logo.png" alt="TTS Seal" class="h-5 w-5 object-contain opacity-70" onerror="this.src='/assets/logo-fallback.svg'">
+            <span>Tech & Talent Solutions</span>
+        </div>
+        <p>Copyright &copy; 2026 Tech & Talent Solutions. All rights reserved.</p>
+    </footer>
+
+    <!-- OCR OVERLAY -->
+    <div id="ocr-overlay" class="fixed inset-0 bg-slate-950/80 z-50 flex flex-col items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-lg w-full text-center space-y-4 shadow-2xl">
+            <div class="h-12 w-12 rounded-full bg-tts-cyan/10 flex items-center justify-center text-tts-cyan text-xl mx-auto mb-2">
+                <i class="fa-solid fa-eye"></i>
+            </div>
+            <h3 class="text-white text-lg font-semibold">OCR Screenshot Analysis</h3>
+            <p class="text-slate-400 text-xs leading-relaxed">
+                This will capture your screen and extract text using Tesseract OCR. Processing occurs locally on your device.
+            </p>
+            <div id="ocr-loader" class="hidden">
+                <div class="h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div id="ocr-progress-bar" class="h-full bg-tts-cyan transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <p id="ocr-status-text" class="text-slate-400 text-xs mt-2">Preparing OCR engine...</p>
+            </div>
+            
+            <div class="flex justify-center gap-3 pt-2">
+                <button id="btn-cancel-ocr" type="button" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg text-xs font-semibold">Cancel</button>
+                <button id="btn-execute-ocr" type="button" class="px-4 py-2 bg-tts-cyan hover:bg-cyan-400 text-tts-dark rounded-lg text-xs font-semibold">Execute OCR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUPER ADMIN PANEL -->
+    <div id="admin-panel-modal" class="fixed inset-0 bg-slate-950/85 z-50 flex items-center justify-center p-4 hidden font-sans">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-5xl h-[85vh] flex flex-col space-y-4 shadow-2xl overflow-hidden">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3 flex-shrink-0">
+                <h2 class="text-white text-lg font-bold"><i class="fa-solid fa-crown text-amber-400 mr-2"></i> Admin Control Panel</h2>
+                <button id="btn-close-admin-panel" type="button" class="text-slate-400 hover:text-white text-xl">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="flex gap-4 border-b border-slate-800 pb-2 flex-shrink-0 text-sm">
+                <button id="tab-btn-users" type="button" class="px-4 py-2 text-white border-b-2 border-tts-cyan font-semibold">Users</button>
+                <button id="tab-btn-llm" type="button" class="px-4 py-2 text-slate-400 hover:text-white font-medium">LLM Settings</button>
+            </div>
+
+            <div class="flex-1 overflow-hidden flex flex-col">
+                <!-- Users Tab -->
+                <div id="tab-content-users" class="flex-1 overflow-y-auto space-y-4">
+                    <div class="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                        <h3 class="text-white text-sm font-bold mb-3">Add New User</h3>
+                        <form id="form-admin-add-user" class="grid grid-cols-4 gap-2 text-xs">
+                            <input id="add-user-name" type="text" placeholder="Full Name" class="px-2 py-1.5 bg-slate-700 text-white rounded border border-slate-600 focus:outline-none focus:border-tts-cyan" required>
+                            <input id="add-user-email" type="email" placeholder="Email" class="px-2 py-1.5 bg-slate-700 text-white rounded border border-slate-600 focus:outline-none focus:border-tts-cyan" required>
+                            <input id="add-user-password" type="password" placeholder="Password" class="px-2 py-1.5 bg-slate-700 text-white rounded border border-slate-600 focus:outline-none focus:border-tts-cyan" required>
+                            <select id="add-user-role" class="px-2 py-1.5 bg-slate-700 text-white rounded border border-slate-600 focus:outline-none focus:border-tts-cyan">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <button type="submit" class="col-span-4 px-3 py-2 bg-tts-blue hover:bg-blue-700 text-white rounded font-semibold transition-all">Add User</button>
+                        </form>
+                    </div>
+
+                    <div class="bg-slate-800 border border-slate-700 rounded-lg p-4 flex-1 overflow-hidden flex flex-col">
+                        <h3 class="text-white text-sm font-bold mb-3">User Management</h3>
+                        <div class="flex-1 overflow-y-auto">
+                            <table class="w-full text-xs">
+                                <thead>
+                                    <tr class="border-b border-slate-700">
+                                        <th class="text-left text-slate-300 font-semibold p-2">Name</th>
+                                        <th class="text-left text-slate-300 font-semibold p-2">Email</th>
+                                        <th class="text-left text-slate-300 font-semibold p-2">Role</th>
+                                        <th class="text-left text-slate-300 font-semibold p-2">Status</th>
+                                        <th class="text-center text-slate-300 font-semibold p-2">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-user-table-body">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div id="admin-user-detail-view" class="hidden bg-slate-800 border border-slate-700 rounded-lg p-4">
+                        <h3 class="text-white text-sm font-bold mb-3">User Details</h3>
+                        <div id="user-details-body" class="space-y-2 text-xs text-slate-300"></div>
+                    </div>
+                </div>
+
+                <!-- LLM Settings Tab -->
+                <div id="tab-content-llm" class="hidden flex-1 overflow-y-auto space-y-4">
+                    <div class="bg-slate-800 border border-slate-700 rounded-lg p-4">
+                        <h3 class="text-white text-sm font-bold mb-3">LLM Configuration</h3>
+                        <div class="space-y-3 text-xs">
+                            <div>
+                                <label class="text-slate-300 block mb-1">API Key (Base64 Encrypted)</label>
+                                <input id="setting-admin-api-key" type="password" placeholder="Your API key here" class="w-full px-2 py-1.5 bg-slate-700 text-white rounded border border-slate-600 focus:outline-none focus:border-tts-cyan font-mono" autocomplete="off">
+                            </div>
+                            <div>
+                                <label class="text-slate-300 block mb-1">AI Mode</label>
+                                <select id="setting-admin-ai-mode" class="w-full px-2 py-1.5 bg-slate-700 text-white rounded border border-slate-600 focus:outline-none focus:border-tts-cyan">
+                                    <option value="simulated">Simulated (Offline)</option>
+                                    <option value="gemini">Gemini Cloud</option>
+                                    <option value="openai">OpenAI</option>
+                                    <option value="ollama">Ollama Local</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-slate-300 block mb-1">Model Name</label>
+                                <input id="setting-admin-model-name" type="text" placeholder="gemini-2.5-flash" class="w-full px-2 py-1.5 bg-slate-700 text-white rounded border border-slate-600 focus:outline-none focus:border-tts-cyan">
+                            </div>
+                            <button id="btn-admin-save-llm" type="button" class="w-full px-3 py-2 bg-tts-blue hover:bg-blue-700 text-white rounded font-semibold transition-all">Save Settings</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION TOAST -->
+    <div id="notification-toast" class="fixed top-6 right-6 bg-tts-dark text-white px-6 py-4 rounded-xl shadow-2xl transform transition-all duration-300 translate-x-[150%] flex items-start gap-3.5 z-50 max-w-sm border border-slate-700">
+        <i id="toast-icon" class="fa-solid fa-circle-info text-tts-cyan text-md mt-1"></i>
+        <div>
+            <h4 id="toast-title" class="font-bold text-sm">Notification</h4>
+            <p id="toast-message" class="text-xs text-slate-300">Message goes here</p>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div class="h-12 w-12 rounded-full bg-red-900/20 flex items-center justify-center text-red-500 text-2xl mx-auto">
+                <i class="fa-solid fa-exclamation"></i>
+            </div>
+            <h3 class="text-white text-md font-bold">Confirm User Deletion</h3>
+            <p class="text-slate-400 text-xs leading-relaxed">
+                Permanently delete <strong id="delete-target-username"></strong>? This action cannot be undone.
+            </p>
+            <div class="flex gap-3 justify-center pt-2 text-xs">
+                <button id="btn-delete-cancel" type="button" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold">Cancel</button>
+                <button id="btn-delete-confirm" type="button" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold">Delete User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="edit-user-modal" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 hidden font-sans">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full space-y-4 shadow-2xl text-left">
+            <h3 class="text-white text-md font-bold flex items-center gap-2 border-b border-slate-800 pb-2">
+                <i class="fa-solid fa-user-pen text-tts-cyan"></i> Edit User
+            </h3>
+            <form id="form-admin-edit-user" class="space-y-3 text-xs">
+                <input id="edit-user-id" type="hidden">
+                <div>
+                    <label class="text-slate-300 block mb-1">Name</label>
+                    <input id="edit-user-name" type="text" class="w-full px-2 py-1.5 bg-slate-700 text-white rounded border border-slate-600 focus:outline-none focus:border-tts-cyan" required>
+                </div>
+                <div>
+                    <label class="text-slate-300 block mb-1">Email</label>
+                    <input id="edit-user-email" type="email" class="w-full px-2 py-1.5 bg-slate-700 text-white rounded border border-slate-600 focus:outline-none focus:border-tts-cyan" required>
+                </div>
+                <div>
+                    <label class="text-slate-300 block mb-1">Password</label>
+                    <input id="edit-user-password" type="password" class="w-full px-2 py-1.5 bg-slate-700 text-white rounded border border-slate-600 focus:outline-none focus:border-tts-cyan" required>
+                </div>
+                <div>
+                    <label class="text-slate-300 block mb-1">Role</label>
+                    <select id="edit-user-role" class="w-full px-2 py-1.5 bg-slate-700 text-white rounded border border-slate-600 focus:outline-none focus:border-tts-cyan">
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit" class="flex-1 px-3 py-2 bg-tts-blue hover:bg-blue-700 text-white rounded font-semibold">Save</button>
+                    <button id="btn-edit-user-cancel" type="button" class="flex-1 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded font-semibold">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Inline Script (Will be split to external JS file) -->
+    <script src="/js/app.js"></script>
+</body>
+</html>

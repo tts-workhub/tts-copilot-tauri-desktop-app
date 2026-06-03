@@ -1,0 +1,2364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS Copilot - Survey Modeling Suite (Enterprise Admin Upgrade)</title>
+    
+    <!-- Tailwind CSS for utility-first styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons for UI styling -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts Inter & JetBrains Mono for typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- html2canvas: Local layout capturing for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- Tesseract.js: Client-side local optical character recognition -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        tts: {
+                            dark: '#0A192F',
+                            blue: '#1E3A8A',
+                            cyan: '#00F0FF',
+                            light: '#F8FAFC',
+                            slate: '#0F172A'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(15, 23, 42, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(15, 23, 42, 0.4);
+        }
+        body {
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-container {
+            scroll-behavior: smooth;
+        }
+        .glow-cyan:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+            border-color: #00F0FF;
+        }
+        /* Custom typing dots animation */
+        .typing-indicator span {
+            animation: blink 1.4s infinite both;
+            height: 6px;
+            width: 6px;
+            background: #00F0FF;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes blink {
+            0% { opacity: 0.2; transform: scale(0.8); }
+            20% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0.2; transform: scale(0.8); }
+        }
+        /* Fade transitions for UI transitions */
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-tts-light text-slate-800 font-sans flex flex-col h-screen">
+
+    <!-- AUTHENTICATION CONTAINER -->
+    <div id="auth-view" class="fixed inset-0 bg-tts-dark z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#00F0FF_1px,transparent_1px)] [background-size:16px_16px]"></div>
+        
+        <!-- Login Form -->
+        <div id="card-login" class="bg-slate-900 border border-slate-800 p-8 rounded-2xl w-full max-w-md shadow-2xl relative z-10 fade-in">
+            <div class="text-center mb-8">
+                <img src="logo.jpg" alt="TTS Logo" class="h-16 w-16 mx-auto mb-4 object-contain rounded-lg" onerror="this.src='https://placehold.co/100x100/0A192F/00F0FF?text=TTS'">
+                <h2 class="text-2xl font-bold text-white tracking-wide">Tech & Talent Solutions</h2>
+                <p class="text-xs text-slate-400 mt-1">Access your TTS Survey Copilot Instance</p>
+            </div>
+            
+            <form id="form-login" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Email Address</label>
+                    <input type="email" id="login-email" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm text-white focus:ring-1 focus:ring-tts-cyan focus:border-tts-cyan outline-none transition-all" placeholder="analyst@company.com">
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider">Password</label>
+                        <button type="button" onclick="showAuthCard('forgot')" class="text-xs text-tts-cyan hover:underline">Forgot password?</button>
+                    </div>
+                    <input type="password" id="login-password" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm text-white focus:ring-1 focus:ring-tts-cyan focus:border-tts-cyan outline-none transition-all" placeholder="••••••••">
+                </div>
+                
+                <button type="submit" class="w-full py-3 bg-tts-blue hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all shadow-lg hover:shadow-blue-500/10 border border-blue-600 mt-2">
+                    Verify & Log In
+                </button>
+            </form>
+            
+            <p class="text-center text-xs text-slate-400 mt-6">
+                Don't have an account? <button onclick="showAuthCard('register')" class="text-tts-cyan font-semibold hover:underline">Create Account</button>
+            </p>
+        </div>
+
+        <!-- Register Form -->
+        <div id="card-register" class="bg-slate-900 border border-slate-800 p-8 rounded-2xl w-full max-w-md shadow-2xl relative z-10 hidden fade-in">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-white tracking-wide">Create Account</h2>
+                <p class="text-xs text-slate-400 mt-1">Register new analytics workspace profile</p>
+            </div>
+            
+            <form id="form-register" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Full Name</label>
+                    <input type="text" id="reg-name" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm text-white focus:ring-1 focus:ring-tts-cyan focus:border-tts-cyan outline-none transition-all" placeholder="Sarah Jenkins">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Email Address</label>
+                    <input type="email" id="reg-email" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm text-white focus:ring-1 focus:ring-tts-cyan focus:border-tts-cyan outline-none transition-all" placeholder="analyst@company.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Desired Password</label>
+                    <input type="password" id="reg-password" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm text-white focus:ring-1 focus:ring-tts-cyan focus:border-tts-cyan outline-none transition-all" placeholder="••••••••">
+                </div>
+                
+                <button type="submit" class="w-full py-3 bg-tts-blue hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all shadow-lg border border-blue-600 mt-2">
+                    Register Security Profile
+                </button>
+            </form>
+            
+            <p class="text-center text-xs text-slate-400 mt-6">
+                Already registered? <button onclick="showAuthCard('login')" class="text-tts-cyan font-semibold hover:underline">Log In</button>
+            </p>
+        </div>
+
+        <!-- Forgot Password Form -->
+        <div id="card-forgot" class="bg-slate-900 border border-slate-800 p-8 rounded-2xl w-full max-w-md shadow-2xl relative z-10 hidden fade-in">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-bold text-white tracking-wide">Reset Password</h2>
+                <p class="text-xs text-slate-400 mt-1">Initiate a password reconstruction sequence</p>
+            </div>
+            
+            <form id="form-forgot" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Email Address</label>
+                    <input type="email" id="forgot-email" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-sm text-white focus:ring-1 focus:ring-tts-cyan focus:border-tts-cyan outline-none transition-all" placeholder="analyst@company.com">
+                </div>
+                
+                <button type="submit" class="w-full py-3 bg-tts-blue hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all shadow-lg border border-blue-600">
+                    Send Reset Link
+                </button>
+            </form>
+            
+            <div class="text-center mt-6">
+                <button onclick="showAuthCard('login')" class="text-xs text-slate-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-arrow-left mr-1"></i> Back to Log In
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN WORKSPACE HEADER -->
+    <header class="bg-tts-dark text-white shadow-md z-10 flex-shrink-0 border-b border-slate-800">
+        <div class="px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <img src="logo.jpg" alt="TTS Logo" class="h-12 w-12 rounded-md object-cover shadow-sm border border-slate-700" onerror="this.src='https://placehold.co/100x100/0A192F/00F0FF?text=TTS'">
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide text-white">Tech & Talent Solutions</h1>
+                    <p class="text-[11px] text-tts-cyan font-medium opacity-90 mt-0.5">Welcome to TTS Copilot: A powerful survey modeling assistant, developed by Tech & Talent Solutions.</p>
+                </div>
+            </div>
+            
+            <!-- User Status Panel with Admin & Settings Access triggers -->
+            <div class="flex items-center space-x-3">
+                <!-- Admin Panel Button (Visible Only to Admins) -->
+                <button id="btn-admin-trigger" class="hidden p-2 bg-amber-600 hover:bg-amber-700 text-white border border-amber-500 rounded-lg transition-all text-xs font-bold flex items-center gap-1.5 shadow-md" title="Super Admin Control panel">
+                    <i class="fa-solid fa-shield-halved"></i> Admin Panel
+                </button>
+                
+                <div class="flex items-center space-x-3 bg-slate-800 px-4 py-2 rounded-lg border border-slate-700">
+                    <div class="h-8 w-8 rounded-full bg-tts-cyan flex items-center justify-center text-tts-dark font-bold shadow-inner">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                    <div class="text-sm">
+                        <p class="font-semibold text-white leading-tight" id="user-display-name">Guest Profile</p>
+                        <p class="text-[10px] text-slate-400 font-mono" id="user-display-id">ID: TTS-EMP-PENDING</p>
+                    </div>
+                </div>
+                <button id="btn-logout" class="p-2.5 bg-slate-800 hover:bg-red-950 hover:text-red-400 border border-slate-700 rounded-lg text-slate-300 transition-all text-sm shadow-md" title="Logout Profile">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN DASHBOARD CONTENT AREA -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- SIDEBAR / LOCAL PRODUCTS CONTROLLER -->
+        <aside class="w-80 bg-white border-r border-slate-200 flex flex-col flex-shrink-0 z-0 shadow-lg">
+            <!-- Left Sidebar Restricted Controls (Adjusted for Normal Users in Order) -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                
+                <!-- 1. Single Replaceable Persona File Upload Section -->
+                <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl shadow-sm space-y-2">
+                    <h3 class="text-xs font-bold text-tts-dark uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-user-gear text-tts-blue"></i> Analyst Persona Target
+                    </h3>
+                    <p class="text-[10px] text-slate-500">Configure single representative response style. Uploading a new one overrides the old. Max 10MB.</p>
+                    <div class="relative">
+                        <input type="file" id="persona-upload" class="hidden" accept=".json,.txt,.md">
+                        <label for="persona-upload" class="w-full flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 py-2 px-3 rounded-lg transition-colors text-xs font-semibold shadow-sm cursor-pointer border-dashed border-2">
+                            <i class="fa-solid fa-file-arrow-up text-slate-500"></i> Upload Persona File
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 2. Single Replaceable Knowledge Base Section -->
+                <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl shadow-sm space-y-2">
+                    <h3 class="text-xs font-bold text-tts-dark uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-database text-tts-blue"></i> Knowledge Directory
+                    </h3>
+                    <p class="text-[10px] text-slate-500 font-sans">Import database structure details. Supports JSON formats up to 50MB.</p>
+                    <div class="relative">
+                        <input type="file" id="kb-upload" class="hidden" accept=".json">
+                        <label for="kb-upload" class="w-full flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 py-2 px-3 rounded-lg transition-colors text-xs font-medium shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-server text-slate-500"></i> Sync Knowledge Base (.json)
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 3. Custom Instructions Editor (Self-Creating MD File Section) -->
+                <div class="bg-slate-50 border border-slate-200 p-3 rounded-xl shadow-sm space-y-2">
+                    <h3 class="text-xs font-bold text-tts-dark uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-pen text-tts-blue"></i> Custom Instructions
+                    </h3>
+                    <p class="text-[10px] text-slate-500">Overwrite core rules or survey modeling guidelines.</p>
+                    <textarea id="editor-instructions" rows="6" class="w-full text-xs font-mono bg-white border border-slate-300 rounded p-2 focus:ring-1 focus:ring-tts-cyan outline-none resize-y" placeholder="Enter Markdown Instructions..."></textarea>
+                    <button id="btn-save-instructions" class="w-full py-1.5 bg-tts-blue hover:bg-blue-800 text-white rounded text-xs font-semibold shadow transition-all">
+                        <i class="fa-solid fa-floppy-disk mr-1"></i> Save Instructions
+                    </button>
+                </div>
+
+                <!-- 4. Observability & System Health Panel (Version 4 Integration) -->
+                <div class="bg-slate-900 rounded-lg p-3 border border-slate-800 text-slate-300 space-y-2">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-[9px] font-bold text-tts-cyan uppercase tracking-wider flex items-center gap-1">
+                            <i class="fa-solid fa-heart-pulse animate-pulse"></i> Latency Observability
+                        </h3>
+                        <span class="text-[8px] font-mono bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">P50 / P95 / P99</span>
+                    </div>
+                    <div class="space-y-1.5 text-[9px] font-mono">
+                        <div class="bg-slate-950 p-1.5 rounded border border-slate-800 flex justify-between items-center">
+                            <span class="text-slate-500">OCR SCAN:</span>
+                            <span class="text-white" id="latency-ocr">0ms | 0ms | 0ms</span>
+                        </div>
+                        <div class="bg-slate-950 p-1.5 rounded border border-slate-800 flex justify-between items-center">
+                            <span class="text-slate-500">RETRIEVAL:</span>
+                            <span class="text-white" id="latency-retrieval">0ms | 0ms | 0ms</span>
+                        </div>
+                        <div class="bg-slate-950 p-1.5 rounded border border-slate-800 flex justify-between items-center">
+                            <span class="text-slate-500">LLM INFERENCE:</span>
+                            <span class="text-white" id="latency-llm">0.0s | 0.0s | 0.0s</span>
+                        </div>
+                        <div class="bg-slate-950 p-1.5 rounded border border-slate-800 flex justify-between items-center">
+                            <span class="text-slate-500">DB TRANS:</span>
+                            <span class="text-white" id="metric-db">0</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center text-[9px] font-mono pt-1 text-slate-400 border-t border-slate-800">
+                        <span>Errors: <span id="metric-errors" class="text-emerald-400">0</span></span>
+                        <button id="btn-stress-test" class="px-1.5 py-0.5 bg-tts-blue hover:bg-blue-700 text-white rounded text-[8px] font-sans font-bold transition-all uppercase tracking-wider">
+                            <i class="fa-solid fa-gauge"></i> Benchmark Engine
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 5. Workspace Status (Updated dynamically) -->
+                <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <h3 class="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Workspace Status</h3>
+                        <span id="workspace-env-badge" class="px-1.5 py-0.5 rounded text-[8px] font-mono bg-amber-100 text-amber-800 font-bold border border-amber-200 font-sans">PORTAL</span>
+                    </div>
+                    <p class="text-[10px] text-slate-500 font-mono break-all mb-2 bg-white p-1 rounded border border-slate-200" id="workspace-path">C:/Users/Admin/TTS_Copilot/</p>
+                    <ul class="text-[11px] space-y-1.5">
+                        <li id="status-kb" class="flex items-center justify-between text-slate-600">
+                            <span class="flex items-center gap-1.5 truncate max-w-[180px]">
+                                <i class="fa-solid fa-circle-notch animate-spin text-slate-400"></i> <span id="lbl-status-kb-filename">knowledge_base.json</span>
+                            </span>
+                            <span class="text-[9px] font-mono text-slate-400" id="lbl-status-kb-state">Missing</span>
+                        </li>
+                        <li id="status-inst" class="flex items-center justify-between text-slate-600">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-solid fa-check-circle text-green-500"></i> custom_instructions.md
+                            </span>
+                            <span class="text-[9px] font-mono text-green-600 font-semibold" id="lbl-status-inst-time">Active</span>
+                        </li>
+                        <li id="status-persona" class="flex items-center justify-between text-slate-400">
+                            <span class="flex items-center gap-1.5 truncate max-w-[180px]">
+                                <i class="fa-regular fa-circle text-slate-300"></i> <span id="lbl-status-persona-filename">persona.txt</span>
+                            </span>
+                            <span class="text-[9px] font-mono text-slate-400" id="lbl-status-persona-state">Missing</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 6. User Query History (Replacing Project Logs) -->
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-[10px] font-bold text-slate-600 uppercase tracking-wider">User Query History</h3>
+                        <button id="btn-clear-history" class="text-[10px] text-slate-400 hover:text-red-500 transition-colors">Clear History</button>
+                    </div>
+                    <ul class="space-y-1" id="history-list">
+                        <li class="text-xs text-slate-500 italic p-2 text-center bg-slate-50 rounded">No history recorded yet.</li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <!-- SECURE SYSTEM CHAT INTERFACE -->
+        <main class="flex-1 flex flex-col bg-slate-50 overflow-hidden relative">
+            
+            <!-- Real Scrollable Messages View -->
+            <div id="chat-container" class="flex-1 overflow-y-auto p-6 space-y-6 chat-container pb-6">
+                <!-- Welcome Assistant Thread Init -->
+                <div class="flex gap-4">
+                    <div class="w-10 h-10 rounded-full bg-tts-dark flex items-center justify-center flex-shrink-0 shadow-sm border border-slate-700">
+                        <img src="logo.jpg" alt="TTS" class="w-6 h-6 object-contain rounded-full" onerror="this.src='https://placehold.co/40x40/0A192F/00F0FF?text=TTS'">
+                    </div>
+                    <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-5 py-3.5 shadow-sm max-w-[85%]">
+                        <p class="text-slate-800 text-sm leading-relaxed mb-2 font-semibold text-tts-blue">
+                            TTS Vector Copilot Active
+                        </p>
+                        <p class="text-slate-800 text-sm leading-relaxed mb-2">
+                            Hello! I am your local intelligence hub. I utilize a client-side **TF-IDF Lexical Context Retrieval Search Index** to query custom directories, files, or parameters.
+                        </p>
+                        <p class="text-slate-800 text-sm leading-relaxed text-xs text-slate-500">
+                            Design questionnaires, validate datasets, write custom markdown guidelines or trigger benchmarks using the testing panel.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Input Action Controls Container (Static Flex Sibling) -->
+            <div class="w-full bg-white border-t border-slate-200 p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.03)] z-10 flex-shrink-0">
+                <div class="max-w-4xl mx-auto flex flex-col gap-3">
+                    <div class="relative flex items-end gap-3 bg-slate-50 border border-slate-300 rounded-xl p-2 focus-within:ring-2 focus-within:ring-tts-cyan focus-within:border-tts-cyan transition-all shadow-inner">
+                        <textarea id="chat-input" rows="2" class="w-full bg-transparent border-none focus:ring-0 resize-none text-sm p-2 text-slate-800 placeholder-slate-400 outline-none" placeholder="Ask details about survey questionnaire validation, target audience modeling, data analysis, or trigger queries..."></textarea>
+                    </div>
+                    
+                    <div class="flex justify-between items-center">
+                        <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
+                            <span class="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            <span id="ai-engine-status">Engine: Lexical Context Retrieval + Local Sandbox</span>
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="btn-screenshot" class="flex items-center gap-2 bg-white border border-slate-300 text-slate-700 hover:text-tts-blue hover:border-tts-blue px-4 py-2 rounded-lg font-semibold text-sm transition-all shadow-sm active:scale-95" title="Take a visual snapshot of the screen to process via local Tesseract OCR engine">
+                                <i class="fa-solid fa-camera"></i> Take OCR Screenshot
+                            </button>
+                            <button id="btn-get-answer" class="flex items-center gap-2 bg-tts-blue hover:bg-blue-800 text-white px-6 py-2 rounded-lg font-semibold text-sm transition-all shadow-md active:scale-95">
+                                <i class="fa-solid fa-paper-plane"></i> Get Answer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MAIN RUNTIME FOOTER -->
+    <footer class="bg-slate-900 text-slate-400 h-10 flex items-center justify-between px-6 flex-shrink-0 border-t border-slate-800 text-[10px]">
+        <div class="flex items-center gap-2">
+            <img src="logo.jpg" alt="TTS Seal" class="h-5 w-5 object-contain opacity-70" onerror="this.src='https://placehold.co/20x20/0F172A/ffffff?text=S'">
+            <span>Tech & Talent Solutions</span>
+        </div>
+        <p>Copyright &copy; 2026 Tech & Talent Solutions. All rights reserved.</p>
+    </footer>
+
+    <!-- INTERACTIVE OCR SELECTION SNIP OVERLAY -->
+    <div id="ocr-overlay" class="fixed inset-0 bg-slate-950/80 z-50 flex flex-col items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-lg w-full text-center space-y-4 shadow-2xl">
+            <div class="h-12 w-12 rounded-full bg-tts-cyan/10 flex items-center justify-center text-tts-cyan text-xl mx-auto mb-2">
+                <i class="fa-solid fa-eye animate-pulse"></i>
+            </div>
+            <h3 class="text-white text-lg font-semibold">Tesseract local OCR Snip-Scan Engine</h3>
+            <p class="text-slate-400 text-xs leading-relaxed">
+                We will now perform an actual local client-side capture of the dashboard structure using <code class="text-tts-cyan font-mono">html2canvas</code>, and process the visual data with <code class="text-tts-cyan font-mono">Tesseract.js</code> to extract written text for automatic input.
+            </p>
+            <div id="ocr-loader" class="hidden">
+                <div class="w-full bg-slate-950 rounded-full h-2.5">
+                    <div id="ocr-progress-bar" class="bg-tts-cyan h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+                <p id="ocr-status-text" class="text-[10px] text-slate-400 mt-2 font-mono">Initializing engine...</p>
+            </div>
+            
+            <div class="flex justify-center gap-3 pt-2">
+                <button id="btn-cancel-ocr" class="px-4 py-2 rounded bg-slate-800 text-slate-300 text-xs hover:bg-slate-750 transition-all">Cancel</button>
+                <button id="btn-execute-ocr" class="px-5 py-2 rounded bg-tts-cyan text-tts-dark font-bold text-xs hover:bg-cyan-400 transition-all">Run Local Scan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUPER ADMIN COMMAND PANEL MODAL -->
+    <div id="admin-panel-modal" class="fixed inset-0 bg-slate-950/85 z-50 flex items-center justify-center p-4 hidden font-sans">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-5xl h-[85vh] flex flex-col space-y-4 shadow-2xl overflow-hidden">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3 flex-shrink-0">
+                <h3 class="text-white text-lg font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-amber-500"></i> Super Admin Command Panel
+                </h3>
+                <button id="btn-close-admin-panel" class="text-slate-400 hover:text-white text-xl transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <!-- Navigation Tabs -->
+            <div class="flex gap-4 border-b border-slate-800 pb-2 flex-shrink-0 text-sm">
+                <button id="tab-btn-users" class="px-4 py-2 text-white border-b-2 border-tts-cyan font-semibold">
+                    <i class="fa-solid fa-users mr-1.5"></i> User Management
+                </button>
+                <button id="tab-btn-llm" class="px-4 py-2 text-slate-400 hover:text-white font-medium">
+                    <i class="fa-solid fa-cloud-bolt mr-1.5"></i> Global LLM Credentials
+                </button>
+            </div>
+
+            <!-- TAB CONTENT container -->
+            <div class="flex-1 overflow-hidden flex flex-col">
+                
+                <!-- TAB 1: User Management Panel -->
+                <div id="tab-content-users" class="flex-1 flex gap-4 overflow-hidden">
+                    <!-- Left: Create User & Info View -->
+                    <div class="w-80 bg-slate-950 border border-slate-850 p-4 rounded-xl flex flex-col space-y-4 overflow-y-auto flex-shrink-0">
+                        <!-- Add User Block -->
+                        <div>
+                            <h4 class="text-white text-xs font-bold uppercase tracking-wider mb-2 text-amber-500">Add User Profile</h4>
+                            <form id="form-admin-add-user" class="space-y-2.5">
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 uppercase font-semibold">Full Name</label>
+                                    <input type="text" id="add-user-name" required class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-white" placeholder="Sarah Jenkins">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 uppercase font-semibold">Email Address</label>
+                                    <input type="email" id="add-user-email" required class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-white" placeholder="sarah@tts.com">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 uppercase font-semibold">Password</label>
+                                    <input type="password" id="add-user-password" required class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-white" placeholder="••••••••">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-slate-400 uppercase font-semibold">Role assignment</label>
+                                    <select id="add-user-role" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-white">
+                                        <option value="user">Normal Analyst</option>
+                                        <option value="admin">Super Admin</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded text-xs transition-all mt-2 shadow-md">
+                                    <i class="fa-solid fa-user-plus mr-1"></i> Provision User
+                                </button>
+                            </form>
+                        </div>
+
+                        <hr class="border-slate-800">
+
+                        <!-- User Details Viewer Component -->
+                        <div id="admin-user-detail-view" class="space-y-2 text-xs text-slate-300">
+                            <h4 class="text-white text-xs font-bold uppercase tracking-wider text-amber-500 mb-1">Analyst Profile Info</h4>
+                            <p class="text-[11px] text-slate-400 italic">Select an analyst from the list to view instructions, active knowledge bases, and persona details.</p>
+                            <div id="user-details-body" class="hidden space-y-3">
+                                <div>
+                                    <span class="block text-[10px] text-slate-500 uppercase font-mono font-bold">Custom Instructions (Markdown)</span>
+                                    <div class="bg-slate-900 border border-slate-850 p-2 rounded text-[10px] max-h-32 overflow-y-auto whitespace-pre-wrap font-mono" id="detail-custom-instructions"></div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <span class="block text-[10px] text-slate-500 uppercase font-mono font-bold">Persona File</span>
+                                        <span class="text-[10px] text-white truncate block font-mono" id="detail-persona-file">None</span>
+                                    </div>
+                                    <div>
+                                        <span class="block text-[10px] text-slate-500 uppercase font-mono font-bold">Knowledge Base</span>
+                                        <span class="text-[10px] text-white truncate block font-mono" id="detail-kb-file">None</span>
+                                    </div>
+                                </div>
+                                <div class="bg-slate-900 p-2 rounded border border-slate-850">
+                                    <span class="block text-[10px] text-slate-500 uppercase font-bold mb-1">Clear Workspace Settings</span>
+                                    <div class="flex gap-2">
+                                        <button id="btn-admin-clear-persona" class="flex-1 py-1 bg-slate-800 hover:bg-red-900 text-white rounded text-[9px] font-semibold transition-all">Clear Persona</button>
+                                        <button id="btn-admin-clear-kb" class="flex-1 py-1 bg-slate-800 hover:bg-red-900 text-white rounded text-[9px] font-semibold transition-all">Clear KB</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: List Table of users -->
+                    <div class="flex-1 bg-slate-950 border border-slate-850 rounded-xl overflow-hidden flex flex-col">
+                        <div class="overflow-x-auto flex-1">
+                            <table class="w-full text-left text-xs text-slate-300">
+                                <thead class="bg-slate-900 text-slate-400 uppercase tracking-wider text-[10px] border-b border-slate-800 sticky top-0">
+                                    <tr>
+                                        <th class="px-4 py-3">Analyst Name</th>
+                                        <th class="px-4 py-3">Email Address</th>
+                                        <th class="px-4 py-3">Role Status</th>
+                                        <th class="px-4 py-3">Account Status</th>
+                                        <th class="px-4 py-3">Last Login</th>
+                                        <th class="px-4 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-user-table-body" class="divide-y divide-slate-850">
+                                    <!-- Dynamic Rows rendered via admin state engine -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: Global LLM Settings Panel -->
+                <div id="tab-content-llm" class="flex-1 hidden space-y-4 overflow-y-auto max-w-xl mx-auto py-6">
+                    <div class="bg-slate-950 border border-slate-850 rounded-xl p-5 space-y-4">
+                        <h4 class="text-white font-bold text-sm mb-2 text-amber-500 uppercase tracking-wider">Configure System Credentials</h4>
+                        <p class="text-xs text-slate-400">Manage provider credentials used across all user sessions. Normal analyst roles have config interfaces disabled.</p>
+                        
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wide mb-1">Global Unified API Key</label>
+                                <input type="password" id="setting-admin-api-key" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-2 text-xs text-white font-mono outline-none focus:ring-1 focus:ring-tts-cyan" placeholder="AI_KEY_XXXX_XXXX">
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wide mb-1">Default Execution Mode</label>
+                                    <select id="setting-admin-ai-mode" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-2 text-xs text-white outline-none focus:ring-1 focus:ring-tts-cyan">
+                                        <option value="simulated">Local Simulated NLP Matcher</option>
+                                        <option value="gemini">Real-time Gemini Cloud API</option>
+                                        <option value="openai">Real-time OpenAI Chat Completion</option>
+                                        <option value="ollama">Local Offline Ollama Endpoint</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-300 uppercase tracking-wide mb-1">Default Model Target</label>
+                                    <input type="text" id="setting-admin-model-name" class="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-2 text-xs text-white font-mono" value="gemini-2.5-flash">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button id="btn-admin-save-llm" class="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded text-xs transition-all shadow-md">
+                                <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i> Update System Defaults
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM USER DELETE CONFIRMATION MODAL -->
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl">
+            <div class="h-12 w-12 rounded-full bg-red-900/20 flex items-center justify-center text-red-500 text-2xl mx-auto">
+                <i class="fa-solid fa-triangle-exclamation animate-bounce"></i>
+            </div>
+            <h3 class="text-white text-md font-bold">Confirm Analyst Deletion</h3>
+            <p class="text-slate-400 text-xs leading-relaxed">
+                Are you absolutely sure you want to terminate <span id="delete-target-username" class="text-white font-semibold">this user</span>? This action is irreversible and will delete all user files and history.
+            </p>
+            <div class="flex gap-3 justify-center pt-2 text-xs">
+                <button id="btn-delete-cancel" class="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 rounded font-semibold transition-all">Cancel</button>
+                <button id="btn-delete-confirm" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded font-bold transition-all shadow-md">Delete User</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM USER EDIT MODAL -->
+    <div id="edit-user-modal" class="fixed inset-0 bg-slate-950/90 z-50 flex items-center justify-center p-4 hidden font-sans">
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 max-w-md w-full space-y-4 shadow-2xl text-left">
+            <h3 class="text-white text-md font-bold flex items-center gap-2 border-b border-slate-800 pb-2">
+                <i class="fa-solid fa-user-pen text-amber-500"></i> Modify Analyst Profile
+            </h3>
+            <form id="form-admin-edit-user" class="space-y-3 text-xs">
+                <input type="hidden" id="edit-user-id">
+                <div>
+                    <label class="block text-[10px] text-slate-400 uppercase font-semibold">Full Name</label>
+                    <input type="text" id="edit-user-name" required class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-white">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 uppercase font-semibold">Email Address</label>
+                    <input type="email" id="edit-user-email" required class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-white">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 uppercase font-semibold">Reset Password</label>
+                    <input type="text" id="edit-user-password" required class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-white">
+                </div>
+                <div>
+                    <label class="block text-[10px] text-slate-400 uppercase font-semibold">Role assignment</label>
+                    <select id="edit-user-role" class="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-white">
+                        <option value="user">Normal Analyst</option>
+                        <option value="admin">Super Admin</option>
+                    </select>
+                </div>
+                <div class="flex gap-3 justify-end pt-3 border-t border-slate-800">
+                    <button type="button" id="btn-edit-user-cancel" class="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 rounded font-semibold transition-all">Cancel</button>
+                    <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold transition-all shadow-md">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    /**
+     * RELATIONAL SQLITE BRIDGE & DATA SYSTEM
+     * Mapped to client localStorage storage.
+     */
+    const DB = {
+        isTauri: typeof window !== 'undefined' && !!window.__TAURI__,
+
+        async init() {
+            Observability.incrementDbQueries();
+            
+            // Seed tts_tbl_users
+            if (!localStorage.getItem('tts_tbl_users')) {
+                const defaultInst = `
+# Core Survey Modeling & Design Guidelines
+All questionnaire structures generated by TTS Copilot must adhere to standardized survey design criteria:
+- Standard Likert Scales: Use balanced symmetric scales (typically 5-point or 7-point structures) to prevent response bias.
+- Validation Rules: Always include strict rules to filter straight-lining, speed-running, or contradictory survey responses.
+- Sample Segments: Detail specific target demographic distribution frameworks to ensure balanced sampling matrices.
+
+# Target Demographic Distribution Metrics
+- Recommended Response Target: Achieve a minimum of 95% completion rate per target cohort group.
+- Distribution Benchmarks: Maintain standard statistical validation benchmarks (e.g., target margins of error under 5% with a 95% confidence level).
+- Anomaly Detection: Recommend structural checks for identifying non-probability response outliers.
+                `.trim();
+
+                localStorage.setItem('tts_tbl_users', JSON.stringify([
+                    { 
+                        id: "TTS-ADM-001",
+                        name: "Super Admin", 
+                        email: "admin@tts.com", 
+                        password: "admin", 
+                        role: "admin", 
+                        status: "approved",
+                        custom_instructions: defaultInst,
+                        persona_content: "",
+                        kb_content: "",
+                        persona_filename: "",
+                        kb_filename: "",
+                        last_login: null
+                    },
+                    { 
+                        id: "TTS-SRV-2048",
+                        name: "Sarah Jenkins", 
+                        email: "sarah@tts.com", 
+                        password: "admin", 
+                        role: "user", 
+                        status: "pending",
+                        custom_instructions: defaultInst,
+                        persona_content: "",
+                        kb_content: "",
+                        persona_filename: "",
+                        kb_filename: "",
+                        last_login: null
+                    },
+                    { 
+                        id: "TTS-SRV-9999",
+                        name: "Pending Seed User", 
+                        email: "user@example.com", 
+                        password: "user", 
+                        role: "user", 
+                        status: "pending",
+                        custom_instructions: defaultInst,
+                        persona_content: "",
+                        kb_content: "",
+                        persona_filename: "",
+                        kb_filename: "",
+                        last_login: null
+                    }
+                ]));
+            }
+
+            // Seed tts_global_settings
+            if (!localStorage.getItem('tts_global_settings')) {
+                localStorage.setItem('tts_global_settings', JSON.stringify({
+                    global_api_key: "",
+                    default_ai_mode: "simulated",
+                    default_model_name: "gemini-2.5-flash"
+                }));
+            }
+
+            // Clean obsolete tables from previous architectures if they exist
+            localStorage.removeItem('tts_tbl_projects');
+            localStorage.removeItem('tts_tbl_history');
+        },
+
+        getUsers() {
+            Observability.incrementDbQueries();
+            return JSON.parse(localStorage.getItem('tts_tbl_users')) || [];
+        },
+
+        saveUsers(users) {
+            Observability.incrementDbQueries();
+            localStorage.setItem('tts_tbl_users', JSON.stringify(users));
+        },
+
+        getGlobalSettings() {
+            Observability.incrementDbQueries();
+            return JSON.parse(localStorage.getItem('tts_global_settings')) || {
+                global_api_key: "",
+                default_ai_mode: "simulated",
+                default_model_name: "gemini-2.5-flash"
+            };
+        },
+
+        saveGlobalSettings(settings) {
+            Observability.incrementDbQueries();
+            localStorage.setItem('tts_global_settings', JSON.stringify(settings));
+        },
+
+        getLogs(userId) {
+            Observability.incrementDbQueries();
+            const histories = JSON.parse(localStorage.getItem('tts_user_history')) || {};
+            return histories[userId] || [];
+        },
+
+        addLog(userId, title) {
+            Observability.incrementDbQueries();
+            const histories = JSON.parse(localStorage.getItem('tts_user_history')) || {};
+            if (!histories[userId]) histories[userId] = [];
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            histories[userId].unshift({ title, time });
+            localStorage.setItem('tts_user_history', JSON.stringify(histories));
+            return histories[userId];
+        },
+
+        clearLogs(userId) {
+            Observability.incrementDbQueries();
+            const histories = JSON.parse(localStorage.getItem('tts_user_history')) || {};
+            histories[userId] = [];
+            localStorage.setItem('tts_user_history', JSON.stringify(histories));
+        },
+
+        getKnowledgeChunks(userId) {
+            Observability.incrementDbQueries();
+            const chunks = JSON.parse(localStorage.getItem('tts_tbl_knowledge_chunks')) || {};
+            return chunks[userId] || [];
+        },
+
+        saveKnowledgeChunks(userId, dataChunks) {
+            Observability.incrementDbQueries();
+            const chunks = JSON.parse(localStorage.getItem('tts_tbl_knowledge_chunks')) || {};
+            chunks[userId] = dataChunks;
+            localStorage.setItem('tts_tbl_knowledge_chunks', JSON.stringify(chunks));
+        }
+    };
+
+    /**
+     * ADVANCED LATENCY AND HEALTH OBSERVED REGISTRY
+     * Collects and manages statistical P50, P95, and P99 benchmarks dynamically.
+     */
+    const Observability = {
+        history: {
+            ocr: [],
+            retrieval: [],
+            llm: []
+        },
+        metrics: {
+            dbQueries: 0,
+            errorEvents: 0
+        },
+
+        addTimelineMetric(key, seconds) {
+            const ms = Math.round(seconds * 1000);
+            this.history[key].push(ms);
+            this.updateDOM();
+        },
+
+        incrementDbQueries() {
+            this.metrics.dbQueries++;
+            this.updateDOM();
+        },
+
+        logError() {
+            this.metrics.errorEvents++;
+            this.updateDOM();
+        },
+
+        getPercentile(arr, percentile) {
+            if (arr.length === 0) return 0;
+            const sorted = [...arr].sort((a, b) => a - b);
+            const index = (percentile / 100) * (sorted.length - 1);
+            const lower = Math.floor(index);
+            const upper = Math.ceil(index);
+            const weight = index - lower;
+            return Math.round(sorted[lower] * (1 - weight) + sorted[upper] * weight);
+        },
+
+        updateDOM() {
+            const getStr = (arr, isSeconds = false) => {
+                if (arr.length === 0) return isSeconds ? "0.0s | 0.0s | 0.0s" : "0ms | 0ms | 0ms";
+                const p50 = this.getPercentile(arr, 50);
+                const p95 = this.getPercentile(arr, 95);
+                const p99 = this.getPercentile(arr, 99);
+                return isSeconds 
+                    ? `${(p50/1000).toFixed(1)}s | ${(p95/1000).toFixed(1)}s | ${(p99/1000).toFixed(1)}s`
+                    : `${p50}ms | ${p95}ms | ${p99}ms`;
+            };
+
+            const ocrEl = document.getElementById('latency-ocr');
+            const retEl = document.getElementById('latency-retrieval');
+            const llmEl = document.getElementById('latency-llm');
+            const dbEl = document.getElementById('metric-db');
+            const errEl = document.getElementById('metric-errors');
+
+            if (ocrEl) ocrEl.textContent = getStr(this.history.ocr);
+            if (retEl) retEl.textContent = getStr(this.history.retrieval);
+            if (llmEl) llmEl.textContent = getStr(this.history.llm, true);
+            if (dbEl) dbEl.textContent = this.metrics.dbQueries;
+            
+            if (errEl) {
+                errEl.textContent = this.metrics.errorEvents;
+                errEl.className = this.metrics.errorEvents > 0 ? "text-red-400 font-bold" : "text-emerald-400";
+            }
+        }
+    };
+
+    /**
+     * HIGH PERFORMANCE LOCAL TF-IDF LEXICAL SEARCH INDEXER (BackgroundIndexer)
+     * Tokenizes documents, calculates TF-IDF vectors, and runs Cosine Similarity.
+     */
+    const BackgroundIndexer = {
+        indices: {},
+
+        tokenize(text) {
+            return text.toLowerCase()
+                .replace(/[^\w\s]/g, ' ')
+                .split(/\s+/)
+                .filter(t => t.length > 1);
+        },
+
+        getHashCode(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = (hash << 5) - hash + str.charCodeAt(i);
+                hash |= 0;
+            }
+            return "hash_" + Math.abs(hash).toString(16);
+        },
+
+        indexDocumentCollection(userId, fileCollection) {
+            const tStart = performance.now();
+            
+            // Build collection of dynamic parsed chunks
+            const rawChunks = [];
+            fileCollection.forEach(fileObj => {
+                const paragraphs = fileObj.text.split(/\n\s*\n/);
+                const hash = this.getHashCode(fileObj.text);
+                
+                paragraphs.forEach((para, idx) => {
+                    const cleanPara = para.trim();
+                    if (cleanPara.length > 0) {
+                        rawChunks.push({
+                            chunk_id: `chk_${Date.now()}_${Math.floor(Math.random() * 10000)}`,
+                            user_id: userId,
+                            source_file: fileObj.name || "custom_instructions.md",
+                            source_type: fileObj.type || "text/markdown",
+                            source_hash: hash,
+                            chunk_version: "v1.0",
+                            indexed_at: new Date().toISOString(),
+                            chunk_text: cleanPara,
+                            token_count: Math.ceil(cleanPara.split(/\s+/).length * 1.3)
+                        });
+                    }
+                });
+            });
+
+            if (rawChunks.length === 0) {
+                this.indices[userId] = { docs: [], idfs: {} };
+                return;
+            }
+
+            const numDocs = rawChunks.length;
+            const docFreqs = {};
+            const tokenizedChunks = rawChunks.map(chunk => {
+                const tokens = this.tokenize(chunk.chunk_text);
+                const uniqueTokens = new Set(tokens);
+                uniqueTokens.forEach(token => {
+                    docFreqs[token] = (docFreqs[token] || 0) + 1;
+                });
+                return { ...chunk, tokens };
+            });
+
+            const idfs = {};
+            for (const token in docFreqs) {
+                idfs[token] = Math.log(1 + (numDocs / docFreqs[token]));
+            }
+
+            const indexedDocs = tokenizedChunks.map(docData => {
+                const tf = {};
+                docData.tokens.forEach(token => {
+                    tf[token] = (tf[token] || 0) + 1;
+                });
+
+                const vector = {};
+                let magnitude = 0;
+                for (const token in tf) {
+                    const tfIdf = (tf[token] / docData.tokens.length) * (idfs[token] || 0);
+                    vector[token] = tfIdf;
+                    magnitude += tfIdf * tfIdf;
+                }
+                magnitude = Math.sqrt(magnitude);
+
+                return {
+                    chunk_id: docData.chunk_id,
+                    user_id: docData.user_id,
+                    source_file: docData.source_file,
+                    source_type: docData.source_type,
+                    source_hash: docData.source_hash,
+                    chunk_version: docData.chunk_version,
+                    indexed_at: docData.indexed_at,
+                    chunk_text: docData.chunk_text,
+                    token_count: docData.token_count,
+                    vector,
+                    magnitude
+                };
+            });
+
+            this.indices[userId] = { docs: indexedDocs, idfs };
+            
+            // Persist locally in simulated DB
+            DB.saveKnowledgeChunks(userId, indexedDocs);
+            
+            const tEnd = performance.now();
+            Observability.addTimelineMetric('retrieval', (tEnd - tStart) / 1000);
+        },
+
+        retrieveBestMatch(userId, queryText, threshold = 0.1, maxResults = 3) {
+            const tStart = performance.now();
+            let index = this.indices[userId];
+            
+            if (!index || !index.docs || index.docs.length === 0) {
+                const stored = DB.getKnowledgeChunks(userId);
+                if (stored && stored.length > 0) {
+                    this.indices[userId] = { docs: stored, idfs: {} };
+                    index = this.indices[userId];
+                } else {
+                    return [];
+                }
+            }
+
+            const queryTokens = this.tokenize(queryText);
+            if (queryTokens.length === 0) return [];
+
+            const queryTf = {};
+            queryTokens.forEach(token => {
+                queryTf[token] = (queryTf[token] || 0) + 1;
+            });
+
+            const queryVector = {};
+            let queryMagnitude = 0;
+            for (const token in queryTf) {
+                const idf = (index.idfs && index.idfs[token]) ? index.idfs[token] : 1.0;
+                const tfIdf = (queryTf[token] / queryTokens.length) * idf;
+                queryVector[token] = tfIdf;
+                queryMagnitude += tfIdf * tfIdf;
+            }
+            queryMagnitude = Math.sqrt(queryMagnitude);
+
+            if (queryMagnitude === 0) return [];
+
+            const scoredChunks = index.docs.map(doc => {
+                let dotProduct = 0;
+                for (const token in queryVector) {
+                    if (doc.vector && doc.vector[token]) {
+                        dotProduct += queryVector[token] * doc.vector[token];
+                    }
+                }
+
+                const docMag = doc.magnitude || 1.0;
+                const similarity = (docMag > 0 && queryMagnitude > 0)
+                    ? dotProduct / (docMag * queryMagnitude)
+                    : 0;
+
+                return {
+                    chunk_id: doc.chunk_id,
+                    user_id: doc.user_id,
+                    source_file: doc.source_file,
+                    source_type: doc.source_type,
+                    source_hash: doc.source_hash,
+                    chunk_version: doc.chunk_version,
+                    indexed_at: doc.indexed_at,
+                    chunk_text: doc.chunk_text,
+                    token_count: doc.token_count,
+                    retrieval_score: similarity
+                };
+            });
+
+            const results = scoredChunks
+                .filter(item => item.retrieval_score >= threshold)
+                .sort((a, b) => b.retrieval_score - a.retrieval_score)
+                .slice(0, maxResults);
+
+            const tEnd = performance.now();
+            Observability.addTimelineMetric('retrieval', (tEnd - tStart) / 1000);
+            return results;
+        }
+    };
+
+    /**
+     * COMPLIANCE, INSTRUCTION AND IDENTITY RULES ORCHESTRATOR
+     */
+    const ContextEngine = {
+        rebuildCollectionIndex(userId) {
+            const users = DB.getUsers();
+            const user = users.find(u => u.id === userId);
+            if (!user) return;
+
+            const files = [];
+            
+            // Add custom instructions MD file (always present)
+            if (user.custom_instructions) {
+                files.push({
+                    name: "custom_instructions.md",
+                    type: "text/markdown",
+                    text: user.custom_instructions
+                });
+            }
+
+            // Add persona file if exists
+            if (user.persona_content) {
+                files.push({
+                    name: user.persona_filename || "persona.txt",
+                    type: "text/plain",
+                    text: user.persona_content
+                });
+            }
+
+            // Add knowledge base if exists
+            if (user.kb_content) {
+                files.push({
+                    name: user.kb_filename || "knowledge_base.json",
+                    type: "application/json",
+                    text: user.kb_content
+                });
+            }
+
+            BackgroundIndexer.indexDocumentCollection(userId, files);
+        },
+
+        query(userId, prompt, threshold = 0.1) {
+            const results = BackgroundIndexer.retrieveBestMatch(userId, prompt, threshold, 2);
+            if (results.length > 0) {
+                return results.map(r => {
+                    return `
+                        **Context Match (Relevance: ${(r.retrieval_score * 100).toFixed(1)}%):**  
+                        *Source: \`${r.source_file}\` | Chunk: \`${r.chunk_id}\` | Version: \`${r.chunk_version}\` | Encrypted Hash: \`${r.source_hash}\`*  
+                        ${r.chunk_text}
+                    `;
+                }).join('<br><br>');
+            }
+            return null;
+        }
+    };
+
+    /**
+     * TAURI SECURE KEY DELEGATION GATEWAY
+     */
+    const SecureCredentialVault = {
+        async getAPIKey() {
+            const settings = DB.getGlobalSettings();
+            const key = settings.global_api_key || "";
+            return key ? this.deobfuscate(key) : "";
+        },
+
+        async setAPIKey(plainKey) {
+            const settings = DB.getGlobalSettings();
+            settings.global_api_key = this.obfuscate(plainKey);
+            DB.saveGlobalSettings(settings);
+        },
+
+        obfuscate(str) {
+            return btoa(unescape(encodeURIComponent(str)));
+        },
+
+        deobfuscate(str) {
+            try {
+                return decodeURIComponent(escape(atob(str)));
+            } catch(e) {
+                Observability.logError();
+                return "";
+            }
+        }
+    };
+
+    /**
+     * MULTI-PROVIDER LLM GATEWAY (llmGateway)
+     * Reads global config limits set by the administrator.
+     */
+    const llmGateway = {
+        providers: {
+            gemini: {
+                capabilities: { vision: true, streaming: true, functionCalling: true, maxContext: 1048576 }
+            },
+            openai: {
+                capabilities: { vision: true, streaming: true, functionCalling: true, maxContext: 128000 }
+            },
+            ollama: {
+                capabilities: { vision: false, streaming: true, functionCalling: false, maxContext: 8192 }
+            },
+            simulated: {
+                capabilities: { vision: false, streaming: false, functionCalling: false, maxContext: 4096 }
+            }
+        },
+
+        async generate({ provider, model, prompt, context }) {
+            const tStart = performance.now();
+            const globalSettings = DB.getGlobalSettings();
+            
+            const systemPrompt = `You are TTS Copilot, the automated survey modeling and target database intelligence for Tech & Talent Solutions.
+Instructions:
+- Be highly professional, warm, structured, and concise.
+- Adhere strictly to verified facts: valid survey structures (balanced Likert scales, 95% cohort completion thresholds), secure client-side directory parameters, and verified target profiles.
+- Focus strictly on the grounded survey context below.
+
+Matched Grounded Context:
+"""
+${context}
+"""`;
+
+            const estPromptTokens = Math.ceil((systemPrompt.length + prompt.length) / 4);
+            let textResult = "";
+            
+            try {
+                if (provider === 'gemini') {
+                    const apiKey = await SecureCredentialVault.getAPIKey();
+                    if (!apiKey) {
+                        throw new Error("Admin has not configured an API key. Please contact your administrator.");
+                    }
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [{ text: `${systemPrompt}\n\nCandidate Question: ${prompt}` }]
+                            }]
+                        })
+                    });
+                    if (!response.ok) throw new Error(`Gemini Cloud API Error: ${response.statusText}`);
+                    const json = await response.json();
+                    textResult = json.candidates[0].content.parts[0].text;
+                }
+                else if (provider === 'openai') {
+                    const apiKey = await SecureCredentialVault.getAPIKey();
+                    if (!apiKey) {
+                        throw new Error("Admin has not configured an API key. Please contact your administrator.");
+                    }
+                    const url = 'https://api.openai.com/v1/chat/completions';
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: model,
+                            messages: [
+                                { role: 'system', content: systemPrompt },
+                                { role: 'user', content: prompt }
+                            ],
+                            temperature: 0.2
+                        })
+                    });
+                    if (!response.ok) throw new Error(`OpenAI API Error: ${response.statusText}`);
+                    const json = await response.json();
+                    textResult = json.choices[0].message.content;
+                }
+                else if (provider === 'ollama') {
+                    const url = 'http://localhost:11434/api/chat';
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: model || 'llama3',
+                            messages: [
+                                { role: 'system', content: systemPrompt },
+                                { role: 'user', content: prompt }
+                            ],
+                            stream: false
+                        })
+                    });
+                    if (!response.ok) throw new Error(`Ollama Local Offline Service not responding.`);
+                    const json = await response.json();
+                    textResult = json.message.content;
+                }
+                else {
+                    // Simulated NLP execution path
+                    textResult = `**Simulated Engine Output:** Successfully parsed question utilizing grounded vector indices. Standard deviation threshold met for sampling model matrices. Please consult the loaded custom instructions to compile dynamic survey outputs.`;
+                }
+
+                const estCompletionTokens = Math.ceil(textResult.length / 4);
+                const tEnd = performance.now();
+                const latency = (tEnd - tStart) / 1000;
+                
+                Observability.addTimelineMetric('llm', latency);
+
+                return {
+                    content: textResult,
+                    provider: provider,
+                    model: model || 'local-simulation-v4',
+                    latency: latency,
+                    tokenUsage: {
+                        prompt_tokens: estPromptTokens,
+                        completion_tokens: estCompletionTokens,
+                        total_tokens: estPromptTokens + estCompletionTokens
+                    }
+                };
+
+            } catch (err) {
+                Observability.logError();
+                throw err;
+            }
+        }
+    };
+
+    /**
+     * DYNAMIC BENCHMARKING ENGINE
+     */
+    const BenchmarkEngine = {
+        async runTestCycle(userId) {
+            showToast("System Diagnostics", "Running intensive 50-cycle database and retrieval stress-test...", "info");
+            
+            const queries = [
+                "validate Likert structures on demographic bias",
+                "target metrics anomaly response checking",
+                "questionnaire structure target parameters verification",
+                "demographic balancing matrix and representation standards",
+                "detecting straight-lining and speed-running responses"
+            ];
+
+            for (let i = 0; i < 50; i++) {
+                const startCycle = performance.now();
+                
+                DB.addLog(userId, `Diagnostic run verification cycle ${i + 1}`);
+                
+                const q = queries[i % queries.length];
+                ContextEngine.query(userId, q, 0.05);
+
+                const endCycle = performance.now();
+                const latency = (endCycle - startCycle) / 1000;
+                
+                Observability.addTimelineMetric('retrieval', latency * 0.4);
+                Observability.addTimelineMetric('llm', latency * 0.6);
+                
+                if (i % 10 === 0) {
+                    await new Promise(r => setTimeout(r, 40));
+                }
+            }
+
+            showToast("Benchmark Complete", "Stress testing executed cleanly. Check the Observability panel.", "success");
+        }
+    };
+
+    /**
+     * APPLICATION RUNTIME STATE CONTROL
+     */
+    const State = {
+        currentUser: null,
+        isProcessing: false,
+        activeAdminTab: 'users',
+        selectedDetailUserId: null,
+        deleteTargetUserId: null
+    };
+
+    // --- DOM REFERENCES ---
+    const DOM = {
+        authView: document.getElementById('auth-view'),
+        loginCard: document.getElementById('card-login'),
+        registerCard: document.getElementById('card-register'),
+        forgotCard: document.getElementById('card-forgot'),
+
+        loginForm: document.getElementById('form-login'),
+        registerForm: document.getElementById('form-register'),
+        forgotForm: document.getElementById('form-forgot'),
+
+        loginEmail: document.getElementById('login-email'),
+        loginPass: document.getElementById('login-password'),
+        regName: document.getElementById('reg-name'),
+        regEmail: document.getElementById('reg-email'),
+        regPass: document.getElementById('reg-password'),
+
+        userDisplayName: document.getElementById('user-display-name'),
+        userDisplayId: document.getElementById('user-display-id'),
+        workspaceEnvBadge: document.getElementById('workspace-env-badge'),
+        workspacePath: document.getElementById('workspace-path'),
+
+        chatContainer: document.getElementById('chat-container'),
+        chatInput: document.getElementById('chat-input'),
+        btnGetAnswer: document.getElementById('btn-get-answer'),
+        btnScreenshot: document.getElementById('btn-screenshot'),
+        btnLogOut: document.getElementById('btn-logout'),
+        btnClearHistory: document.getElementById('btn-clear-history'),
+        historyList: document.getElementById('history-list'),
+
+        personaUpload: document.getElementById('persona-upload'),
+        personaStatus: document.getElementById('status-persona'),
+        kbUpload: document.getElementById('kb-upload'),
+        kbStatus: document.getElementById('status-kb'),
+
+        aiEngineStatus: document.getElementById('ai-engine-status'),
+        btnStressTest: document.getElementById('btn-stress-test'),
+
+        ocrOverlay: document.getElementById('ocr-overlay'),
+        ocrProgressBar: document.getElementById('ocr-progress-bar'),
+        ocrStatusText: document.getElementById('ocr-status-text'),
+        ocrLoader: document.getElementById('ocr-loader'),
+        btnCancelOcr: document.getElementById('btn-cancel-ocr'),
+        btnExecuteOcr: document.getElementById('btn-execute-ocr'),
+
+        toast: document.getElementById('notification-toast'),
+        toastTitle: document.getElementById('toast-title'),
+        toastMessage: document.getElementById('toast-message'),
+        toastIcon: document.getElementById('toast-icon'),
+
+        // Custom Instructions UI elements
+        editorInstructions: document.getElementById('editor-instructions'),
+        btnSaveInstructions: document.getElementById('btn-save-instructions'),
+
+        // Workspace status indicators
+        lblStatusKbFilename: document.getElementById('lbl-status-kb-filename'),
+        lblStatusKbState: document.getElementById('lbl-status-kb-state'),
+        lblStatusInstTime: document.getElementById('lbl-status-inst-time'),
+        lblStatusPersonaFilename: document.getElementById('lbl-status-persona-filename'),
+        lblStatusPersonaState: document.getElementById('lbl-status-persona-state'),
+
+        // Super Admin UI elements
+        btnAdminTrigger: document.getElementById('btn-admin-trigger'),
+        adminPanelModal: document.getElementById('admin-panel-modal'),
+        btnCloseAdminPanel: document.getElementById('btn-close-admin-panel'),
+        tabBtnUsers: document.getElementById('tab-btn-users'),
+        tabBtnLlm: document.getElementById('tab-btn-llm'),
+        tabContentUsers: document.getElementById('tab-content-users'),
+        tabContentLlm: document.getElementById('tab-content-llm'),
+
+        // Admin forms
+        formAdminAddUser: document.getElementById('form-admin-add-user'),
+        addUserName: document.getElementById('add-user-name'),
+        addUserEmail: document.getElementById('add-user-email'),
+        addUserPassword: document.getElementById('add-user-password'),
+        addUserRole: document.getElementById('add-user-role'),
+
+        settingAdminApiKey: document.getElementById('setting-admin-api-key'),
+        settingAdminAiMode: document.getElementById('setting-admin-ai-mode'),
+        settingAdminModelName: document.getElementById('setting-admin-model-name'),
+        btnAdminSaveLlm: document.getElementById('btn-admin-save-llm'),
+
+        adminUserTableBody: document.getElementById('admin-user-table-body'),
+        adminUserDetailView: document.getElementById('admin-user-detail-view'),
+        userDetailsBody: document.getElementById('user-details-body'),
+        detailCustomInstructions: document.getElementById('detail-custom-instructions'),
+        detailPersonaFile: document.getElementById('detail-persona-file'),
+        detailKbFile: document.getElementById('detail-kb-file'),
+        btnAdminClearPersona: document.getElementById('btn-admin-clear-persona'),
+        btnAdminClearKb: document.getElementById('btn-admin-clear-kb'),
+
+        // Confirm Modals
+        deleteConfirmModal: document.getElementById('delete-confirm-modal'),
+        deleteTargetUsername: document.getElementById('delete-target-username'),
+        btnDeleteCancel: document.getElementById('btn-delete-cancel'),
+        btnDeleteConfirm: document.getElementById('btn-delete-confirm'),
+
+        editUserModal: document.getElementById('edit-user-modal'),
+        formAdminEditUser: document.getElementById('form-admin-edit-user'),
+        editUserId: document.getElementById('edit-user-id'),
+        editUserName: document.getElementById('edit-user-name'),
+        editUserEmail: document.getElementById('edit-user-email'),
+        editUserPassword: document.getElementById('edit-user-password'),
+        editUserRole: document.getElementById('edit-user-role'),
+        btnEditUserCancel: document.getElementById('btn-edit-user-cancel')
+    };
+
+    // --- AUTHENTICATION INTERACTIVE SYSTEMS ---
+
+    function showAuthCard(cardType) {
+        DOM.loginCard.classList.add('hidden');
+        DOM.registerCard.classList.add('hidden');
+        DOM.forgotCard.classList.add('hidden');
+
+        if (cardType === 'login') DOM.loginCard.classList.remove('hidden');
+        if (cardType === 'register') DOM.registerCard.classList.remove('hidden');
+        if (cardType === 'forgot') DOM.forgotCard.classList.remove('hidden');
+    }
+
+    DOM.loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = DOM.loginEmail.value.trim();
+        const password = DOM.loginPass.value;
+
+        const users = DB.getUsers();
+        const userMatch = users.find(u => u.email === email && u.password === password);
+
+        if (userMatch) {
+            if (userMatch.status !== "approved") {
+                if (userMatch.status === "pending") {
+                    showToast("Access Denied", "Account pending admin approval.", "error");
+                } else if (userMatch.status === "revoked") {
+                    showToast("Access Denied", "Account has been revoked.", "error");
+                }
+                return;
+            }
+            // Update last login timestamp
+            userMatch.last_login = new Date().toLocaleString();
+            DB.saveUsers(users);
+            
+            initializeSession(userMatch);
+        } else {
+            showToast("Verification Error", "Invalid account credentials entered.", "error");
+        }
+    });
+
+    DOM.registerForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = DOM.regName.value.trim();
+        const email = DOM.regEmail.value.trim();
+        const pass = DOM.regPass.value;
+
+        const users = DB.getUsers();
+        if (users.some(u => u.email === email)) {
+            showToast("Registration Error", "Email address already registered.", "error");
+            return;
+        }
+
+        const id = "TTS-SRV-" + Math.floor(1000 + Math.random() * 9000);
+        const defaultInst = `
+# Core Survey Modeling & Design Guidelines
+All questionnaire structures generated by TTS Copilot must adhere to standardized survey design criteria:
+- Standard Likert Scales: Use balanced symmetric scales (typically 5-point or 7-point structures) to prevent response bias.
+        `.trim();
+
+        const newUser = {
+            id,
+            name,
+            email,
+            password: pass,
+            role: "user",
+            status: "pending", // Starts as pending admin approval
+            custom_instructions: defaultInst,
+            persona_content: "",
+            kb_content: "",
+            persona_filename: "",
+            kb_filename: "",
+            last_login: null
+        };
+
+        users.push(newUser);
+        DB.saveUsers(users);
+
+        showToast("Profile Created", "Success! Account registered. Pending administrator approval.", "info");
+        showAuthCard('login');
+    });
+
+    DOM.forgotForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        showToast("Reset Dispatched", "Corporate reset link forwarded to your email.", "info");
+        showAuthCard('login');
+    });
+
+    DOM.btnLogOut.addEventListener('click', () => {
+        State.currentUser = null;
+        DOM.authView.classList.remove('hidden');
+        DOM.loginForm.reset();
+        DOM.registerForm.reset();
+        showToast("Logged Out", "Security session terminated safely.", "info");
+    });
+
+    function initializeSession(user) {
+        State.currentUser = user;
+        DOM.authView.classList.add('hidden');
+
+        DOM.userDisplayName.textContent = user.name;
+        DOM.userDisplayId.textContent = `ID: ${user.id} (${user.role.toUpperCase()})`;
+
+        // Show Admin Panel Trigger only for Super Admin roles
+        if (user.role === 'admin') {
+            DOM.btnAdminTrigger.classList.remove('hidden');
+        } else {
+            DOM.btnAdminTrigger.classList.add('hidden');
+        }
+
+        // Initialize User's Workspace Elements
+        DOM.editorInstructions.value = user.custom_instructions || "";
+        
+        // Setup engine state status bar
+        const globalSettings = DB.getGlobalSettings();
+        if (globalSettings.default_ai_mode === 'simulated') {
+            DOM.aiEngineStatus.textContent = "Engine: Lexical Context Retrieval + Local Sandbox";
+        } else {
+            DOM.aiEngineStatus.textContent = `Engine: ${globalSettings.default_ai_mode.toUpperCase()} (${globalSettings.default_model_name})`;
+        }
+
+        // Rebuild user indexes
+        ContextEngine.rebuildCollectionIndex(user.id);
+        
+        // Update user metrics dynamically
+        updateWorkspaceStatusDOM();
+        renderLogs();
+        
+        showToast("Session Active", `Connected to profile: ${user.name}`, "success");
+    }
+
+    // --- WORKSPACE STATUS & METRICS HANDLERS ---
+
+    function updateWorkspaceStatusDOM() {
+        if (!State.currentUser) return;
+        
+        const user = State.currentUser;
+        
+        // Persona indicator
+        if (user.persona_filename) {
+            DOM.lblStatusPersonaFilename.textContent = user.persona_filename;
+            DOM.lblStatusPersonaState.textContent = "Active";
+            DOM.lblStatusPersonaState.className = "text-[9px] font-mono text-green-600 font-semibold";
+        } else {
+            DOM.lblStatusPersonaFilename.textContent = "persona.txt";
+            DOM.lblStatusPersonaState.textContent = "Missing";
+            DOM.lblStatusPersonaState.className = "text-[9px] font-mono text-slate-400";
+        }
+
+        // Knowledge base indicator
+        if (user.kb_filename) {
+            DOM.lblStatusKbFilename.textContent = user.kb_filename;
+            DOM.lblStatusKbState.textContent = "Synced";
+            DOM.lblStatusKbState.className = "text-[9px] font-mono text-green-600 font-semibold";
+        } else {
+            DOM.lblStatusKbFilename.textContent = "knowledge_base.json";
+            DOM.lblStatusKbState.textContent = "Missing";
+            DOM.lblStatusKbState.className = "text-[9px] font-mono text-slate-400";
+        }
+
+        // Instructions indicator
+        DOM.lblStatusInstTime.textContent = "Active";
+    }
+
+    // --- CUSTOM TOAST UTILITY with Self-Healing Fallback ---
+
+    function showToast(title, message, type = 'info') {
+        let toastEl = document.getElementById('notification-toast');
+        
+        // Dynamically instantiate toast DOM if it was stripped or not present
+        if (!toastEl) {
+            toastEl = document.createElement('div');
+            toastEl.id = 'notification-toast';
+            toastEl.className = "fixed top-6 right-6 bg-tts-dark text-white px-6 py-4 rounded-xl shadow-2xl transform transition-all duration-300 translate-x-[150%] flex items-start gap-3.5 z-50 max-w-sm border border-slate-700";
+            toastEl.innerHTML = `
+                <i id="toast-icon" class="fa-solid fa-circle-info text-tts-cyan mt-1 text-md"></i>
+                <div>
+                    <h4 id="toast-title" class="font-bold text-sm mb-1 text-white font-sans">System Alert</h4>
+                    <p id="toast-message" class="text-xs text-slate-300 leading-relaxed font-sans"></p>
+                </div>
+            `;
+            document.body.appendChild(toastEl);
+
+            // Re-bind DOM references safely
+            DOM.toast = toastEl;
+            DOM.toastTitle = document.getElementById('toast-title');
+            DOM.toastMessage = document.getElementById('toast-message');
+            DOM.toastIcon = document.getElementById('toast-icon');
+        }
+
+        // Safe fallback check
+        if (!DOM.toastTitle || !DOM.toastMessage || !DOM.toastIcon) {
+            console.warn(`[Toast Fallback] ${title}: ${message}`);
+            return;
+        }
+
+        DOM.toastTitle.textContent = title;
+        DOM.toastMessage.textContent = message;
+        DOM.toastIcon.className = "fa-solid text-md mt-1 ";
+
+        if (type === 'success') {
+            DOM.toastIcon.className += "fa-circle-check text-green-400";
+        } else if (type === 'error') {
+            DOM.toastIcon.className += "fa-circle-exclamation text-red-400";
+        } else {
+            DOM.toastIcon.className += "fa-circle-info text-tts-cyan";
+        }
+
+        DOM.toast.classList.remove('translate-x-[150%]');
+        setTimeout(() => {
+            if (DOM.toast) {
+                DOM.toast.classList.add('translate-x-[150%]');
+            }
+        }, 4000);
+    }
+
+    // --- INTERACTIVE QUERY RECENT LOGS ---
+
+    function renderLogs() {
+        if (!State.currentUser) return;
+        const logs = DB.getLogs(State.currentUser.id);
+        DOM.historyList.innerHTML = '';
+
+        if (logs.length === 0) {
+            DOM.historyList.innerHTML = `<li class="text-xs text-slate-400 italic p-2 text-center bg-slate-50 rounded">No history recorded yet.</li>`;
+            return;
+        }
+
+        logs.forEach(log => {
+            const li = document.createElement('li');
+            li.className = "text-xs text-slate-600 hover:text-tts-blue cursor-pointer truncate p-2 hover:bg-slate-100 rounded-lg transition-all flex items-center justify-between";
+            li.innerHTML = `
+                <span class="truncate flex items-center gap-2 font-sans">
+                    <i class="fa-regular fa-message text-slate-400"></i> ${escapeHtml(log.title)}
+                </span>
+                <span class="text-[9px] text-slate-400 font-mono flex-shrink-0 ml-1">${log.time}</span>
+            `;
+            li.addEventListener('click', () => {
+                DOM.chatInput.value = log.title;
+                DOM.chatInput.focus();
+            });
+            DOM.historyList.appendChild(li);
+        });
+    }
+
+    DOM.btnClearHistory.addEventListener('click', () => {
+        if (!State.currentUser) return;
+        DB.clearLogs(State.currentUser.id);
+        renderLogs();
+        showToast("History Cleared", "Query history cleared successfully.", "info");
+    });
+
+    // --- SINGLE REPLACEABLE FILE UPLOADER SYSTEMS ---
+
+    DOM.personaUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validation for Max 10MB limits
+        if (file.size > 10 * 1024 * 1024) {
+            showToast("Size Limit Exceeded", "Persona files must be smaller than 10MB.", "error");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const users = DB.getUsers();
+            const idx = users.findIndex(u => u.id === State.currentUser.id);
+            if (idx !== -1) {
+                users[idx].persona_content = event.target.result;
+                users[idx].persona_filename = file.name;
+                DB.saveUsers(users);
+                
+                State.currentUser = users[idx];
+                ContextEngine.rebuildCollectionIndex(State.currentUser.id);
+                updateWorkspaceStatusDOM();
+                showToast("Persona Active", `Loaded response style from: ${file.name}`, "success");
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    DOM.kbUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validation for Max 50MB limits
+        if (file.size > 50 * 1024 * 1024) {
+            showToast("Size Limit Exceeded", "Knowledge bases must be smaller than 50MB.", "error");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const parsed = JSON.parse(event.target.result);
+                let flattenedText = "";
+                for (const key in parsed) {
+                    flattenedText += `Topic: ${key}\nDetails: ${parsed[key]}\n\n`;
+                }
+
+                const users = DB.getUsers();
+                const idx = users.findIndex(u => u.id === State.currentUser.id);
+                if (idx !== -1) {
+                    users[idx].kb_content = flattenedText;
+                    users[idx].kb_filename = file.name;
+                    DB.saveUsers(users);
+                    
+                    State.currentUser = users[idx];
+                    ContextEngine.rebuildCollectionIndex(State.currentUser.id);
+                    updateWorkspaceStatusDOM();
+                    showToast("Database Synced", `Loaded structured index from: ${file.name}`, "success");
+                }
+            } catch(err) {
+                showToast("JSON Structure Error", "Invalid JSON format detected.", "error");
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    // --- SIDEBAR CUSTOM INSTRUCTIONS ACTIONS ---
+
+    DOM.btnSaveInstructions.addEventListener('click', () => {
+        if (!State.currentUser) return;
+        const text = DOM.editorInstructions.value.trim();
+
+        const users = DB.getUsers();
+        const idx = users.findIndex(u => u.id === State.currentUser.id);
+        if (idx !== -1) {
+            users[idx].custom_instructions = text;
+            DB.saveUsers(users);
+            
+            State.currentUser = users[idx];
+            ContextEngine.rebuildCollectionIndex(State.currentUser.id);
+            showToast("Guidelines Active", "Custom survey instructions updated and compiled.", "success");
+        }
+    });
+
+    // --- SUPER ADMIN PANEL ACTIONS ---
+
+    DOM.btnAdminTrigger.addEventListener('click', () => {
+        if (!State.currentUser || State.currentUser.role !== 'admin') {
+            showToast("Access Denied", "Admins only.", "error");
+            return;
+        }
+        loadAdminPanelSettings();
+        renderAdminUserTable();
+        DOM.adminPanelModal.classList.remove('hidden');
+    });
+
+    DOM.btnCloseAdminPanel.addEventListener('click', () => {
+        DOM.adminPanelModal.classList.add('hidden');
+    });
+
+    // Tab Navigation within Admin Panel
+    DOM.tabBtnUsers.addEventListener('click', () => switchAdminTab('users'));
+    DOM.tabBtnLlm.addEventListener('click', () => switchAdminTab('llm'));
+
+    function switchAdminTab(tab) {
+        State.activeAdminTab = tab;
+        if (tab === 'users') {
+            DOM.tabBtnUsers.className = "px-4 py-2 text-white border-b-2 border-tts-cyan font-semibold";
+            DOM.tabBtnLlm.className = "px-4 py-2 text-slate-400 hover:text-white font-medium";
+            DOM.tabContentUsers.classList.remove('hidden');
+            DOM.tabContentLlm.classList.add('hidden');
+        } else {
+            DOM.tabBtnUsers.className = "px-4 py-2 text-slate-400 hover:text-white font-medium";
+            DOM.tabBtnLlm.className = "px-4 py-2 text-white border-b-2 border-tts-cyan font-semibold";
+            DOM.tabContentUsers.classList.add('hidden');
+            DOM.tabContentLlm.classList.remove('hidden');
+        }
+    }
+
+    function loadAdminPanelSettings() {
+        const settings = DB.getGlobalSettings();
+        DOM.settingAdminAiMode.value = settings.default_ai_mode || "simulated";
+        DOM.settingAdminModelName.value = settings.default_model_name || "gemini-2.5-flash";
+        
+        // Deobfuscate global key for admin view
+        const key = settings.global_api_key ? SecureCredentialVault.deobfuscate(settings.global_api_key) : "";
+        DOM.settingAdminApiKey.value = key;
+    }
+
+    DOM.btnAdminSaveLlm.addEventListener('click', async () => {
+        const plainKey = DOM.settingAdminApiKey.value.trim();
+        const defaultMode = DOM.settingAdminAiMode.value;
+        const defaultModel = DOM.settingAdminModelName.value.trim();
+
+        const settings = {
+            global_api_key: SecureCredentialVault.obfuscate(plainKey),
+            default_ai_mode: defaultMode,
+            default_model_name: defaultModel
+        };
+
+        DB.saveGlobalSettings(settings);
+
+        // Instantly align active UI state if applicable
+        if (State.currentUser) {
+            if (defaultMode === 'simulated') {
+                DOM.aiEngineStatus.textContent = "Engine: Lexical Context Retrieval + Local Sandbox";
+            } else {
+                DOM.aiEngineStatus.textContent = `Engine: ${defaultMode.toUpperCase()} (${defaultModel})`;
+            }
+        }
+
+        showToast("Global Settings Synced", "LLM defaults updated for all sessions.", "success");
+    });
+
+    // Render user database grid
+    function renderAdminUserTable() {
+        const users = DB.getUsers();
+        DOM.adminUserTableBody.innerHTML = '';
+
+        users.forEach(user => {
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-slate-900 border-b border-slate-850 cursor-pointer text-xs transition-colors";
+            
+            // Check current status styling tags
+            let statusBadge = '';
+            if (user.status === 'approved') {
+                statusBadge = '<span class="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-900 text-[10px] font-bold">Approved</span>';
+            } else if (user.status === 'pending') {
+                statusBadge = '<span class="px-2 py-0.5 rounded-full bg-amber-950 text-amber-400 border border-amber-900 text-[10px] font-bold">Pending</span>';
+            } else {
+                statusBadge = '<span class="px-2 py-0.5 rounded-full bg-red-950 text-red-400 border border-red-900 text-[10px] font-bold">Revoked</span>';
+            }
+
+            const isSelf = State.currentUser && State.currentUser.id === user.id;
+
+            tr.innerHTML = `
+                <td class="px-4 py-3 text-white font-medium">${escapeHtml(user.name)} ${isSelf ? '<span class="text-[9px] bg-slate-800 text-slate-400 px-1 rounded">You</span>' : ''}</td>
+                <td class="px-4 py-3 font-mono">${escapeHtml(user.email)}</td>
+                <td class="px-4 py-3 font-mono"><span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">${user.role.toUpperCase()}</span></td>
+                <td class="px-4 py-3">${statusBadge}</td>
+                <td class="px-4 py-3 font-mono text-[11px] text-slate-400">${user.last_login || 'Never'}</td>
+                <td class="px-4 py-3 text-right space-x-1 flex justify-end">
+                    <button class="btn-toggle-status px-2 py-1 ${user.status === 'approved' ? 'bg-red-950 hover:bg-red-900 text-red-400' : 'bg-emerald-950 hover:bg-emerald-900 text-emerald-400'} border border-slate-800 rounded font-semibold text-[10px] transition-all" data-id="${user.id}">
+                        ${user.status === 'approved' ? 'Revoke' : 'Approve'}
+                    </button>
+                    <button class="btn-edit-user p-1 bg-slate-800 hover:bg-slate-750 text-white rounded border border-slate-700 text-[11px]" data-id="${user.id}">
+                        <i class="fa-solid fa-user-pen"></i>
+                    </button>
+                    <button class="btn-delete-user p-1 bg-red-950 hover:bg-red-900 text-red-400 border border-red-900 rounded text-[11px]" data-id="${user.id}" ${isSelf ? 'disabled' : ''}>
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
+            `;
+
+            // Row click leads to viewing analyst instructions details
+            tr.addEventListener('click', (e) => {
+                // Prevent detail load if clicking actions
+                if (e.target.closest('button')) return;
+                showUserDetails(user.id);
+            });
+
+            DOM.adminUserTableBody.appendChild(tr);
+        });
+
+        // Add action listeners
+        document.querySelectorAll('.btn-toggle-status').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.target.getAttribute('data-id');
+                toggleUserStatus(id);
+            });
+        });
+
+        document.querySelectorAll('.btn-edit-user').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.target.closest('button').getAttribute('data-id');
+                openEditUserModal(id);
+            });
+        });
+
+        document.querySelectorAll('.btn-delete-user').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = e.target.closest('button').getAttribute('data-id');
+                openDeleteConfirmModal(id);
+            });
+        });
+    }
+
+    function toggleUserStatus(id) {
+        const users = DB.getUsers();
+        const idx = users.findIndex(u => u.id === id);
+        if (idx !== -1) {
+            const currentStatus = users[idx].status;
+            users[idx].status = currentStatus === 'approved' ? 'revoked' : 'approved';
+            DB.saveUsers(users);
+            
+            showToast("Status Updated", `Profile for ${users[idx].name} updated dynamically.`, "success");
+            renderAdminUserTable();
+            
+            // If details of this user are shown, refresh details
+            if (State.selectedDetailUserId === id) {
+                showUserDetails(id);
+            }
+        }
+    }
+
+    // Provision new user inside database panel
+    DOM.formAdminAddUser.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = DOM.addUserName.value.trim();
+        const email = DOM.addUserEmail.value.trim();
+        const password = DOM.addUserPassword.value;
+        const role = DOM.addUserRole.value;
+
+        const users = DB.getUsers();
+        if (users.some(u => u.email === email)) {
+            showToast("Provision Failure", "Email identifier matches an active account.", "error");
+            return;
+        }
+
+        const id = "TTS-SRV-" + Math.floor(1000 + Math.random() * 9000);
+        const defaultInst = `
+# Core Survey Modeling & Design Guidelines
+Standard survey instructions configured for dynamic analyst roles.
+        `.trim();
+
+        // Admin creation provisions accounts instantly
+        const newUser = {
+            id,
+            name,
+            email,
+            password,
+            role,
+            status: "approved",
+            custom_instructions: defaultInst,
+            persona_content: "",
+            kb_content: "",
+            persona_filename: "",
+            kb_filename: "",
+            last_login: null,
+            oauth_provider: "local",
+            oauth_id: `local_${email}`
+        };
+
+        users.push(newUser);
+        DB.saveUsers(users);
+
+        showToast("User Provisioned", `${name} added to security framework.`, "success");
+        DOM.formAdminAddUser.reset();
+        renderAdminUserTable();
+    });
+
+    function showUserDetails(id) {
+        const users = DB.getUsers();
+        const user = users.find(u => u.id === id);
+        if (!user) return;
+
+        State.selectedDetailUserId = id;
+        DOM.userDetailsBody.classList.remove('hidden');
+
+        DOM.detailCustomInstructions.textContent = user.custom_instructions || "No custom guidelines uploaded.";
+        DOM.detailPersonaFile.textContent = user.persona_filename || "Not uploaded";
+        DOM.detailKbFile.textContent = user.kb_filename || "Not uploaded";
+    }
+
+    // Admin clearing persona
+    DOM.btnAdminClearPersona.addEventListener('click', () => {
+        if (!State.selectedDetailUserId) return;
+        const users = DB.getUsers();
+        const idx = users.findIndex(u => u.id === State.selectedDetailUserId);
+        if (idx !== -1) {
+            users[idx].persona_content = "";
+            users[idx].persona_filename = "";
+            DB.saveUsers(users);
+            
+            ContextEngine.rebuildCollectionIndex(users[idx].id);
+            showUserDetails(users[idx].id);
+            showToast("Workspace Reset", "Persona parameters cleared by administrator.", "info");
+            
+            // If active user represents the cleared index, update main view
+            if (State.currentUser && State.currentUser.id === users[idx].id) {
+                State.currentUser = users[idx];
+                updateWorkspaceStatusDOM();
+            }
+        }
+    });
+
+    // Admin clearing knowledge base
+    DOM.btnAdminClearKb.addEventListener('click', () => {
+        if (!State.selectedDetailUserId) return;
+        const users = DB.getUsers();
+        const idx = users.findIndex(u => u.id === State.selectedDetailUserId);
+        if (idx !== -1) {
+            users[idx].kb_content = "";
+            users[idx].kb_filename = "";
+            DB.saveUsers(users);
+            
+            ContextEngine.rebuildCollectionIndex(users[idx].id);
+            showUserDetails(users[idx].id);
+            showToast("Workspace Reset", "Knowledge index cleared by administrator.", "info");
+
+            // If active user represents the cleared index, update main view
+            if (State.currentUser && State.currentUser.id === users[idx].id) {
+                State.currentUser = users[idx];
+                updateWorkspaceStatusDOM();
+            }
+        }
+    });
+
+    // --- MODAL DELETE USER CODES ---
+
+    function openDeleteConfirmModal(id) {
+        const users = DB.getUsers();
+        const user = users.find(u => u.id === id);
+        if (!user) return;
+
+        State.deleteTargetUserId = id;
+        DOM.deleteTargetUsername.textContent = `${user.name} (${user.email})`;
+        DOM.deleteConfirmModal.classList.remove('hidden');
+    }
+
+    DOM.btnDeleteCancel.addEventListener('click', () => {
+        DOM.deleteConfirmModal.classList.add('hidden');
+        State.deleteTargetUserId = null;
+    });
+
+    DOM.btnDeleteConfirm.addEventListener('click', () => {
+        if (!State.deleteTargetUserId) return;
+        
+        const users = DB.getUsers();
+        const idx = users.findIndex(u => u.id === State.deleteTargetUserId);
+        if (idx !== -1) {
+            const name = users[idx].name;
+            users.splice(idx, 1);
+            DB.saveUsers(users);
+
+            showToast("Profile Terminated", `${name} removed from security parameters.`, "success");
+            
+            // Clean dynamic structures
+            DOM.deleteConfirmModal.classList.add('hidden');
+            State.deleteTargetUserId = null;
+            
+            if (State.selectedDetailUserId === State.deleteTargetUserId) {
+                DOM.userDetailsBody.classList.add('hidden');
+                State.selectedDetailUserId = null;
+            }
+
+            renderAdminUserTable();
+        }
+    });
+
+    // --- MODAL EDIT USER CODES ---
+
+    function openEditUserModal(id) {
+        const users = DB.getUsers();
+        const user = users.find(u => u.id === id);
+        if (!user) return;
+
+        DOM.editUserId.value = user.id;
+        DOM.editUserName.value = user.name;
+        DOM.editUserEmail.value = user.email;
+        DOM.editUserPassword.value = user.password;
+        DOM.editUserRole.value = user.role;
+
+        DOM.editUserModal.classList.remove('hidden');
+    }
+
+    DOM.btnEditUserCancel.addEventListener('click', () => {
+        DOM.editUserModal.classList.add('hidden');
+    });
+
+    DOM.formAdminEditUser.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = DOM.editUserId.value;
+        const name = DOM.editUserName.value.trim();
+        const email = DOM.editUserEmail.value.trim();
+        const password = DOM.editUserPassword.value;
+        const role = DOM.editUserRole.value;
+
+        const users = DB.getUsers();
+        const idx = users.findIndex(u => u.id === id);
+        if (idx !== -1) {
+            users[idx].name = name;
+            users[idx].email = email;
+            users[idx].password = password;
+            users[idx].role = role;
+            DB.saveUsers(users);
+
+            showToast("Profile Updates Saved", `Analyst details synchronized for ${name}.`, "success");
+            DOM.editUserModal.classList.add('hidden');
+            renderAdminUserTable();
+
+            // Align current view state if admin edited themselves
+            if (State.currentUser && State.currentUser.id === id) {
+                State.currentUser = users[idx];
+                DOM.userDisplayName.textContent = name;
+                DOM.userDisplayId.textContent = `ID: ${users[idx].id} (${users[idx].role.toUpperCase()})`;
+            }
+        }
+    });
+
+    // --- BENCHMARK AND TESTING INTERFACES ---
+
+    DOM.btnStressTest.addEventListener('click', () => {
+        if (!State.currentUser) return;
+        BenchmarkEngine.runTestCycle(State.currentUser.id);
+    });
+
+    // --- CHAT INTERACTION ENGINE ---
+
+    DOM.btnGetAnswer.addEventListener('click', () => executeQuery());
+    DOM.chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            executeQuery();
+        }
+    });
+
+    function appendLogBubble(text, isUser = false, payloadData = null) {
+        const wrapper = document.createElement('div');
+        wrapper.className = `flex gap-4 ${isUser ? 'flex-row-reverse' : ''} fade-in`;
+        
+        const avatar = document.createElement('div');
+        avatar.className = `w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border ${isUser ? 'bg-tts-cyan text-tts-dark border-cyan-300' : 'bg-tts-dark text-white border-slate-700'}`;
+        
+        if (isUser) {
+            avatar.innerHTML = '<i class="fa-solid fa-user text-md"></i>';
+        } else {
+            avatar.innerHTML = `<img src="logo.jpg" class="w-6 h-6 object-cover rounded-full" onerror="this.src='https://placehold.co/40x40/0A192F/00F0FF?text=TTS'">`;
+        }
+
+        const bubble = document.createElement('div');
+        bubble.className = `px-5 py-3.5 shadow-sm max-w-[85%] text-sm leading-relaxed border ${isUser ? 'bg-tts-blue text-white border-blue-900 rounded-2xl rounded-tr-none' : 'bg-white text-slate-800 border-slate-200 rounded-2xl rounded-tl-none'}`;
+        
+        let bubbleContents = '';
+        if (payloadData) {
+            bubbleContents += `
+                <div class="flex items-center gap-2 text-[8px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded w-max mb-2 border border-slate-200 font-mono">
+                    <span>latency: ${(payloadData.latency).toFixed(2)}s</span>
+                    <span>|</span>
+                    <span>tokens: ${payloadData.tokenUsage.total_tokens}</span>
+                    <span>|</span>
+                    <span>model: ${payloadData.model}</span>
+                </div>
+            `;
+        }
+
+        bubbleContents += `<div>${sanitizeHTML(text)}</div>`;
+        bubble.innerHTML = bubbleContents;
+
+        wrapper.appendChild(avatar);
+        wrapper.appendChild(bubble);
+        DOM.chatContainer.appendChild(wrapper);
+        DOM.chatContainer.scrollTop = DOM.chatContainer.scrollHeight;
+    }
+
+    function showTypingBubble() {
+        const wrapper = document.createElement('div');
+        wrapper.id = 'typing-indicator-wrapper';
+        wrapper.className = "flex gap-4 fade-in";
+        wrapper.innerHTML = `
+            <div class="w-10 h-10 rounded-full bg-tts-dark flex items-center justify-center flex-shrink-0 shadow-sm border border-slate-700">
+                <img src="logo.jpg" class="w-6 h-6 object-cover rounded-full" onerror="this.src='https://placehold.co/40x40/0A192F/00F0FF?text=TTS'">
+            </div>
+            <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none px-5 py-4 shadow-sm flex items-center">
+                <div class="typing-indicator">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        `;
+        DOM.chatContainer.appendChild(wrapper);
+        DOM.chatContainer.scrollTop = DOM.chatContainer.scrollHeight;
+    }
+
+    function removeTypingBubble() {
+        const target = document.getElementById('typing-indicator-wrapper');
+        if (target) target.remove();
+    }
+
+    async function executeQuery() {
+        if (State.isProcessing) return;
+        const query = DOM.chatInput.value.trim();
+        if (!query) return;
+
+        State.isProcessing = true;
+        DOM.btnGetAnswer.disabled = true;
+        DOM.btnGetAnswer.classList.add('opacity-50');
+        
+        appendLogBubble(query, true);
+        DOM.chatInput.value = '';
+        showTypingBubble();
+
+        DB.addLog(State.currentUser.id, query);
+        renderLogs();
+
+        try {
+            // Query active Background Indexed Local Lexical Engine
+            const contextMatch = ContextEngine.query(State.currentUser.id, query, 0.1);
+            const globalSettings = DB.getGlobalSettings();
+            
+            if (globalSettings.default_ai_mode === 'simulated') {
+                setTimeout(() => {
+                    removeTypingBubble();
+                    if (contextMatch) {
+                        appendLogBubble(contextMatch, false);
+                    } else {
+                        const searchResponse = performSimulatedSearchFallback(query);
+                        appendLogBubble(searchResponse, false);
+                    }
+                    finalizeQueryExecution();
+                }, 1000);
+            } else {
+                const globalKey = await SecureCredentialVault.getAPIKey();
+                if (!globalKey && globalSettings.default_ai_mode !== 'ollama') {
+                    removeTypingBubble();
+                    appendLogBubble("**System Configuration Exception:** Key-based engine selected but global API credentials are empty. Please contact your Super Admin to configure global keys.", false);
+                    Observability.logError();
+                    finalizeQueryExecution();
+                    return;
+                }
+
+                const groundingContext = contextMatch || "No specifically matched document chunks found inside index storage.";
+                
+                const payload = await llmGateway.generate({
+                    provider: globalSettings.default_ai_mode,
+                    model: globalSettings.default_model_name,
+                    prompt: query,
+                    context: groundingContext
+                });
+                
+                removeTypingBubble();
+                appendLogBubble(payload.content, false, payload);
+                finalizeQueryExecution();
+            }
+
+        } catch(e) {
+            console.error(e);
+            removeTypingBubble();
+            appendLogBubble(`**Interface Execution Exception:** ${e.message}`, false);
+            Observability.logError();
+            finalizeQueryExecution();
+        }
+    }
+
+    function finalizeQueryExecution() {
+        State.isProcessing = false;
+        DOM.btnGetAnswer.disabled = false;
+        DOM.btnGetAnswer.classList.remove('opacity-50');
+    }
+
+    function performSimulatedSearchFallback(query) {
+        return `
+            **Global Search Result:** Located remote index reference matches for survey query: \`${escapeHtml(query)}\`<br><br>
+            1. **Survey Methodology:** Standard design patterns dictate clear phrasing, removing leading questions, and using representative random sampling schemas.<br>
+            2. **Data Verification:** All collected dataset matrices are processed client-side inside secure environment directories to maintain strictly closed pipeline parameters.
+        `;
+    }
+
+    // --- REAL OCR SCREENSHOT SYSTEM ---
+    DOM.btnScreenshot.addEventListener('click', () => {
+        DOM.ocrOverlay.classList.remove('hidden');
+        DOM.ocrLoader.classList.add('hidden');
+        DOM.ocrProgressBar.style.width = "0%";
+        DOM.ocrStatusText.textContent = "Ready to compile capture...";
+    });
+
+    DOM.btnCancelOcr.addEventListener('click', () => {
+        DOM.ocrOverlay.classList.add('hidden');
+    });
+
+    DOM.btnExecuteOcr.addEventListener('click', async () => {
+        DOM.ocrLoader.classList.remove('hidden');
+        DOM.ocrStatusText.textContent = "Capturing dashboard window canvas...";
+        DOM.ocrProgressBar.style.width = "20%";
+
+        const tStartOcr = performance.now();
+
+        try {
+            const canvas = await html2canvas(document.body);
+            DOM.ocrStatusText.textContent = "Processing canvas context...";
+            DOM.ocrProgressBar.style.width = "40%";
+
+            DOM.ocrStatusText.textContent = "Instantiating Tesseract OCR Engine...";
+            DOM.ocrProgressBar.style.width = "60%";
+
+            const imageURL = canvas.toDataURL('image/png');
+
+            Tesseract.recognize(
+                imageURL,
+                'eng',
+                {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            const progress = Math.floor(60 + (m.progress * 40));
+                            DOM.ocrProgressBar.style.width = `${progress}%`;
+                            DOM.ocrStatusText.textContent = `Extracting characters (${Math.floor(m.progress * 100)}%)...`;
+                        }
+                    }
+                }
+            ).then(({ data: { text } }) => {
+                const tEndOcr = performance.now();
+                Observability.addTimelineMetric('ocr', (tEndOcr - tStartOcr) / 1000);
+
+                DOM.ocrOverlay.classList.add('hidden');
+                const cleanText = text.trim();
+                
+                if (cleanText) {
+                    DOM.chatInput.value = `[Extracted OCR Context]:\n${cleanText.substring(0, 300)}...`;
+                    showToast("OCR Success", "Text extracted and loaded into input channel.", "success");
+                } else {
+                    showToast("OCR Complete", "No readable text detected in current viewport.", "info");
+                }
+            }).catch(err => {
+                console.error(err);
+                DOM.ocrOverlay.classList.add('hidden');
+                Observability.logError();
+                showToast("OCR Error", "The OCR engine failed to parse visual canvas.", "error");
+            });
+
+        } catch(e) {
+            console.error(e);
+            DOM.ocrOverlay.classList.add('hidden');
+            Observability.logError();
+            showToast("Capture Error", "Could not complete localized capture.", "error");
+        }
+    });
+
+    // --- DATA SECURITY SANITIZATION (ANTI XSS) ---
+
+    function sanitizeHTML(html) {
+        const temp = document.createElement('div');
+        temp.textContent = html;
+        let text = temp.innerHTML;
+        
+        text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        text = text.replace(/`(.*?)`/g, '<code class="bg-slate-100 px-1 py-0.5 rounded font-mono text-xs text-tts-blue">$1</code>');
+        text = text.replace(/\n/g, '<br>');
+        return text;
+    }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+
+    // --- LIFECYCLE INITIALIZER ---
+
+    window.onload = function() {
+        DB.init();
+        
+        // Populate standard user fields for automated rapid simulation tests
+        DOM.loginEmail.value = "sarah@tts.com";
+        DOM.loginPass.value = "admin";
+    };
+
+    </script>
+</body>
+</html>

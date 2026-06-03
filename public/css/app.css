@@ -1,0 +1,144 @@
+/* Global styles and custom animations */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(15, 23, 42, 0.2);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(15, 23, 42, 0.4);
+}
+
+body {
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-container {
+    scroll-behavior: smooth;
+}
+
+.glow-cyan:focus {
+    outline: none;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+    border-color: #00F0FF;
+}
+
+/* Typing indicator animation */
+.typing-indicator span {
+    animation: blink 1.4s infinite both;
+    height: 6px;
+    width: 6px;
+    background: #00F0FF;
+    border-radius: 50%;
+    display: inline-block;
+    margin: 0 2px;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes blink {
+    0% {
+        opacity: 0.2;
+        transform: scale(0.8);
+    }
+    20% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+    100% {
+        opacity: 0.2;
+        transform: scale(0.8);
+    }
+}
+
+/* Fade transitions */
+.fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Custom button states */
+button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+button:not(:disabled):hover {
+    transform: translateY(-1px);
+}
+
+/* Table hover effects */
+tbody tr:hover {
+    background-color: rgba(0, 240, 255, 0.05);
+}
+
+/* Input focus states */
+input:focus,
+textarea:focus,
+select:focus {
+    box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.1);
+}
+
+/* Responsive design adjustments */
+@media (max-width: 1024px) {
+    aside {
+        width: 280px;
+    }
+}
+
+@media (max-width: 768px) {
+    aside {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: 40;
+        left: -100%;
+        transition: left 0.3s ease;
+    }
+
+    aside.open {
+        left: 0;
+    }
+
+    main {
+        width: 100%;
+    }
+}
+
+/* Print styles */
+@media print {
+    header,
+    footer,
+    aside,
+    #btn-screenshot,
+    button {
+        display: none;
+    }
+}

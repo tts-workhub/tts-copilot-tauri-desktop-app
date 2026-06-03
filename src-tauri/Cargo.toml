@@ -1,0 +1,35 @@
+[package]
+name = "tts-copilot"
+version = "1.0.0"
+description = "TTS Copilot - Survey Modeling Suite for Enterprise"
+authors = ["Tech & Talent Solutions"]
+license = "MIT"
+repository = "https://github.com/yourusername/tts-copilot"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "1.5", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+tauri = { version = "1.5", features = ["window-all", "dialog-all", "http-all", "fs-all"] }
+tokio = { version = "1", features = ["full"] }
+sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "sqlite"] }
+log = "0.4"
+env_logger = "0.10"
+dotenv = "0.15"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+bcrypt = "0.15"
+sha2 = "0.10"
+
+[[bin]]
+name = "tts-copilot"
+path = "src/main.rs"
+
+[profile.release]
+panic = "crash"
+opt-level = "z"
+lto = true
+strip = true
