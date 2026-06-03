@@ -19,13 +19,7 @@ src-tauri/.cargo/
 *.swo
 *~
 Thumbs.db
-.dart_tool/
-build/
-flutter_*.json
-pubspec.lock
 .env.production
 key.key
 *.key
 certificate.pfx
-.webpack/
-dist-electron/

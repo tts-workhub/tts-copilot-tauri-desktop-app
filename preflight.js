@@ -46,16 +46,14 @@ const checks = {
     },
 
     projectStructure: () => {
-        const required = [
-            'tauri.conf.json',
-            'package.json',
-            'src-tauri/Cargo.toml',
-            'src-tauri/src/main.rs',
-            'public/index.html',
-            'public/js/app.js'
-        ];
+        const missing = [];
+        if (!fs.existsSync('./tauri.conf.json')) missing.push('tauri.conf.json');
+        if (!fs.existsSync('./package.json')) missing.push('package.json');
+        if (!fs.existsSync('./src-tauri/Cargo.toml')) missing.push('src-tauri/Cargo.toml');
+        if (!fs.existsSync('./src-tauri/src/main.rs')) missing.push('src-tauri/src/main.rs');
+        if (!fs.existsSync('./public/index.html')) missing.push('public/index.html');
+        if (!fs.existsSync('./public/js/app.js')) missing.push('public/js/app.js');
 
-        const missing = required.filter(f => !fs.existsSync(path.join(__dirname, '..', f)));
         return missing.length === 0 
             ? `✅ All required files present` 
             : `❌ Missing: ${missing.join(', ')}`;

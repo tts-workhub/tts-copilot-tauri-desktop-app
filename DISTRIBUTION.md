@@ -130,7 +130,7 @@ For issues:
 1. Check README.md troubleshooting section
 2. Enable logs: Set `RUST_BACKTRACE=1`
 3. Check Windows Event Viewer for application errors
-4. Contact: support@techtandentalsolutions.com
+4. Contact: support@techandtalentsolutions.com
 
 ---
 

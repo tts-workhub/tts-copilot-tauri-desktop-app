@@ -3,7 +3,7 @@
  * Main Application Logic & State Management
  * 
  * Features:
- * - Secure local storage with encryption
+ * - Secure local storage with obfuscation
  * - User authentication and role-based access control
  * - TF-IDF lexical search indexing
  * - Multi-provider LLM gateway
@@ -20,7 +20,7 @@ const DB = {
 
     async init() {
         // Seed default users (CHANGE DEFAULT PASSWORDS IN PRODUCTION!)
-        if (!localStorage.getItem('tts_tbl_users')) {
+        if (!this._safeGetItem('tts_tbl_users')) {
             const defaultInst = `
 # Core Survey Modeling & Design Guidelines
 All questionnaire structures must adhere to:
@@ -50,18 +50,31 @@ All questionnaire structures must adhere to:
             ]));
         }
 
-        if (!localStorage.getItem('tts_global_settings')) {
+        if (!this._safeGetItem('tts_global_settings')) {
             localStorage.setItem('tts_global_settings', JSON.stringify({
                 global_api_key: "",
                 default_ai_mode: "simulated",
-                default_model_name: "gemini-2.5-flash",
-                encryption_key: this.generateEncryptionKey()
+                default_model_name: "gemini-2.5-flash"
             }));
         }
     },
 
+    /**
+     * Safe JSON parse from localStorage — returns null if missing/corrupted
+     */
+    _safeGetItem(key) {
+        try {
+            const raw = localStorage.getItem(key);
+            if (raw === null) return null;
+            return JSON.parse(raw);
+        } catch (e) {
+            console.warn(`Corrupted localStorage key "${key}", resetting.`, e);
+            localStorage.removeItem(key);
+            return null;
+        }
+    },
+
     async hashPassword(password) {
-        // Simple SHA256 hash (use bcrypt in production backend)
         const encoder = new TextEncoder();
         const data = encoder.encode(password);
         const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -78,12 +91,8 @@ All questionnaire structures must adhere to:
         return Array.from(view).map(b => b.toString(16).padStart(2, '0')).join('');
     },
 
-    generateEncryptionKey() {
-        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    },
-
     getUsers() {
-        return JSON.parse(localStorage.getItem('tts_tbl_users')) || [];
+        return this._safeGetItem('tts_tbl_users') || [];
     },
 
     saveUsers(users) {
@@ -91,7 +100,7 @@ All questionnaire structures must adhere to:
     },
 
     getGlobalSettings() {
-        return JSON.parse(localStorage.getItem('tts_global_settings')) || {
+        return this._safeGetItem('tts_global_settings') || {
             global_api_key: "",
             default_ai_mode: "simulated",
             default_model_name: "gemini-2.5-flash"
@@ -103,23 +112,30 @@ All questionnaire structures must adhere to:
     },
 
     getLogs(userId) {
-        const histories = JSON.parse(localStorage.getItem('tts_user_history')) || {};
-        return histories[userId] || [];
+        const histories = this._safeGetItem('tts_user_history') || {};
+        if (userId === '__proto__' || userId === 'constructor' || userId === 'prototype') return [];
+        return Reflect.get(histories, userId) || [];
     },
 
     addLog(userId, title) {
-        const histories = JSON.parse(localStorage.getItem('tts_user_history')) || {};
-        if (!histories[userId]) histories[userId] = [];
+        const histories = this._safeGetItem('tts_user_history') || {};
+        if (userId === '__proto__' || userId === 'constructor' || userId === 'prototype') return [];
+        let list = Reflect.get(histories, userId);
+        if (!list) {
+            list = [];
+            Reflect.set(histories, userId, list);
+        }
         const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        histories[userId].unshift({ title, time });
-        if (histories[userId].length > 50) histories[userId].pop();
+        list.unshift({ title, time });
+        if (list.length > 50) list.pop();
         localStorage.setItem('tts_user_history', JSON.stringify(histories));
-        return histories[userId];
+        return list;
     },
 
     clearLogs(userId) {
-        const histories = JSON.parse(localStorage.getItem('tts_user_history')) || {};
-        histories[userId] = [];
+        const histories = this._safeGetItem('tts_user_history') || {};
+        if (userId === '__proto__' || userId === 'constructor' || userId === 'prototype') return;
+        Reflect.set(histories, userId, []);
         localStorage.setItem('tts_user_history', JSON.stringify(histories));
     }
 };
@@ -133,14 +149,45 @@ const Observability = {
     metrics: { dbQueries: 0, errorEvents: 0 },
 
     addTimelineMetric(key, seconds) {
-        if (this.history[key]) this.history[key].push(Math.round(seconds * 1000));
+        const val = Math.round(seconds * 1000);
+        if (key === 'ocr') this.history.ocr.push(val);
+        else if (key === 'retrieval') this.history.retrieval.push(val);
+        else if (key === 'llm') this.history.llm.push(val);
     },
 
     getPercentile(arr, percentile) {
         if (arr.length === 0) return 0;
         const sorted = [...arr].sort((a, b) => a - b);
         const index = (percentile / 100) * (sorted.length - 1);
-        return Math.round(sorted[Math.floor(index)]);
+        return Math.round(sorted.at(Math.floor(index)));
+    },
+
+    getPercentileMetric(key) {
+        let arr;
+        if (key === 'ocr') arr = this.history.ocr;
+        else if (key === 'retrieval') arr = this.history.retrieval;
+        else if (key === 'llm') arr = this.history.llm;
+        else return { count: 0, p50: 0, p95: 0, avg: 0 };
+
+        if (arr.length === 0) {
+            return { count: 0, p50: 0, p95: 0, avg: 0 };
+        }
+        const avg = Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
+        return {
+            count: arr.length,
+            p50: this.getPercentile(arr, 50),
+            p95: this.getPercentile(arr, 95),
+            avg
+        };
+    },
+
+    getSummary() {
+        return {
+            ocr: this.getPercentileMetric('ocr'),
+            retrieval: this.getPercentileMetric('retrieval'),
+            llm: this.getPercentileMetric('llm'),
+            errors: this.metrics.errorEvents
+        };
     }
 };
 
@@ -149,7 +196,7 @@ const Observability = {
 // ============================================================================
 
 const BackgroundIndexer = {
-    indices: {},
+    indices: new Map(),
 
     tokenize(text) {
         return text.toLowerCase()
@@ -173,33 +220,33 @@ const BackgroundIndexer = {
         });
 
         if (rawChunks.length === 0) {
-            this.indices[userId] = { docs: [], idfs: {} };
+            this.indices.set(userId, { docs: [], idfs: new Map() });
             return;
         }
 
-        const docFreqs = {};
+        const docFreqs = new Map();
         const tokenizedChunks = rawChunks.map(chunk => {
             const tokens = this.tokenize(chunk.content);
             tokens.forEach(t => {
-                docFreqs[t] = (docFreqs[t] || 0) + 1;
+                docFreqs.set(t, (docFreqs.get(t) || 0) + 1);
             });
             return { ...chunk, tokens };
         });
 
         const numDocs = rawChunks.length;
-        const idfs = {};
-        for (const token in docFreqs) {
-            idfs[token] = Math.log(numDocs / docFreqs[token]);
+        const idfs = new Map();
+        for (const [token, freq] of docFreqs.entries()) {
+            idfs.set(token, Math.log(numDocs / freq));
         }
 
-        this.indices[userId] = { docs: tokenizedChunks, idfs };
+        this.indices.set(userId, { docs: tokenizedChunks, idfs });
         const tEnd = performance.now();
         Observability.addTimelineMetric('retrieval', (tEnd - tStart) / 1000);
     },
 
     retrieveBestMatch(userId, queryText, threshold = 0.1, maxResults = 3) {
         const tStart = performance.now();
-        let index = this.indices[userId];
+        let index = this.indices.get(userId);
 
         if (!index || !index.docs || index.docs.length === 0) {
             return [];
@@ -208,18 +255,19 @@ const BackgroundIndexer = {
         const queryTokens = this.tokenize(queryText);
         if (queryTokens.length === 0) return [];
 
-        const queryTf = {};
+        const queryTf = new Map();
         queryTokens.forEach(t => {
-            queryTf[t] = (queryTf[t] || 0) + 1;
+            queryTf.set(t, (queryTf.get(t) || 0) + 1);
         });
 
-        const queryVector = {};
+        const queryVector = new Map();
         let queryMagnitude = 0;
-        for (const token in queryTf) {
-            const tf = queryTf[token] / queryTokens.length;
-            const idf = index.idfs[token] || 0;
-            queryVector[token] = tf * idf;
-            queryMagnitude += queryVector[token] * queryVector[token];
+        for (const [token, count] of queryTf.entries()) {
+            const tf = count / queryTokens.length;
+            const idf = index.idfs.get(token) || 0;
+            const weight = tf * idf;
+            queryVector.set(token, weight);
+            queryMagnitude += weight * weight;
         }
         queryMagnitude = Math.sqrt(queryMagnitude);
 
@@ -230,11 +278,11 @@ const BackgroundIndexer = {
             let dotProduct = 0;
             doc.tokens.forEach(token => {
                 const tf = 1 / doc.tokens.length;
-                const idf = index.idfs[token] || 0;
+                const idf = index.idfs.get(token) || 0;
                 const weight = tf * idf;
                 docMagnitude += weight * weight;
-                if (queryVector[token]) {
-                    dotProduct += queryVector[token] * weight;
+                if (queryVector.has(token)) {
+                    dotProduct += queryVector.get(token) * weight;
                 }
             });
             docMagnitude = Math.sqrt(docMagnitude);
@@ -299,10 +347,10 @@ const ContextEngine = {
 };
 
 // ============================================================================
-// SECURE CREDENTIAL VAULT
+// CREDENTIAL VAULT (Base64 obfuscation — NOT encryption)
 // ============================================================================
 
-const SecureCredentialVault = {
+const CredentialVault = {
     async getAPIKey() {
         const settings = DB.getGlobalSettings();
         return settings.global_api_key ? this.deobfuscate(settings.global_api_key) : "";
@@ -348,8 +396,8 @@ ${context || 'No grounded context available. Use simulated response.'}`;
 
         try {
             if (provider === 'gemini') {
-                const apiKey = await SecureCredentialVault.getAPIKey();
-                if (!apiKey) throw new Error("API key not configured");
+                const apiKey = await CredentialVault.getAPIKey();
+                if (!apiKey) throw new Error("API key not configured. Go to Admin → LLM Settings to set your key.");
 
                 const response = await fetch(
                     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -363,12 +411,15 @@ ${context || 'No grounded context available. Use simulated response.'}`;
                     }
                 );
 
-                if (!response.ok) throw new Error(`Gemini API Error: ${response.statusText}`);
+                if (!response.ok) {
+                    const errBody = await response.text().catch(() => '');
+                    throw new Error(`Gemini API Error ${response.status}: ${response.statusText}. ${errBody}`);
+                }
                 const json = await response.json();
-                textResult = json.candidates[0].content.parts[0].text;
+                textResult = json?.candidates?.[0]?.content?.parts?.[0]?.text || 'No response generated.';
             } else if (provider === 'openai') {
-                const apiKey = await SecureCredentialVault.getAPIKey();
-                if (!apiKey) throw new Error("API key not configured");
+                const apiKey = await CredentialVault.getAPIKey();
+                if (!apiKey) throw new Error("API key not configured. Go to Admin → LLM Settings to set your key.");
 
                 const response = await fetch('https://api.openai.com/v1/chat/completions', {
                     method: 'POST',
@@ -387,9 +438,12 @@ ${context || 'No grounded context available. Use simulated response.'}`;
                     })
                 });
 
-                if (!response.ok) throw new Error(`OpenAI API Error: ${response.statusText}`);
+                if (!response.ok) {
+                    const errBody = await response.text().catch(() => '');
+                    throw new Error(`OpenAI API Error ${response.status}: ${response.statusText}. ${errBody}`);
+                }
                 const json = await response.json();
-                textResult = json.choices[0].message.content;
+                textResult = json?.choices?.[0]?.message?.content || 'No response generated.';
             } else if (provider === 'ollama') {
                 const response = await fetch('http://localhost:11434/api/chat', {
                     method: 'POST',
@@ -404,9 +458,9 @@ ${context || 'No grounded context available. Use simulated response.'}`;
                     })
                 });
 
-                if (!response.ok) throw new Error(`Ollama service unavailable`);
+                if (!response.ok) throw new Error(`Ollama service unavailable (${response.status}). Is Ollama running on localhost:11434?`);
                 const json = await response.json();
-                textResult = json.message.content;
+                textResult = json?.message?.content || 'No response generated.';
             } else {
                 // Simulated mode (offline-capable)
                 textResult = `**Simulated Response:** Successfully analyzed query using local context indices. Recommended approach for survey design: ensure Likert scale consistency, validate sampling matrices, and implement quality checks for response completion.`;
@@ -437,7 +491,8 @@ const State = {
     isProcessing: false,
     activeAdminTab: 'users',
     selectedDetailUserId: null,
-    deleteTargetUserId: null
+    deleteTargetUserId: null,
+    toastTimeoutId: null
 };
 
 const DOM = {
@@ -470,10 +525,16 @@ const DOM = {
     kbUpload: document.getElementById('kb-upload'),
     kbStatus: document.getElementById('status-kb'),
 
+    personaStateLabel: document.getElementById('lbl-status-persona-state'),
+    kbStateLabel: document.getElementById('lbl-status-kb-state'),
+
     aiEngineStatus: document.getElementById('ai-engine-status'),
     btnStressTest: document.getElementById('btn-stress-test'),
 
     ocrOverlay: document.getElementById('ocr-overlay'),
+    ocrLoader: document.getElementById('ocr-loader'),
+    ocrProgressBar: document.getElementById('ocr-progress-bar'),
+    ocrStatusText: document.getElementById('ocr-status-text'),
     btnCancelOcr: document.getElementById('btn-cancel-ocr'),
     btnExecuteOcr: document.getElementById('btn-execute-ocr'),
 
@@ -520,7 +581,11 @@ const DOM = {
     editUserEmail: document.getElementById('edit-user-email'),
     editUserPassword: document.getElementById('edit-user-password'),
     editUserRole: document.getElementById('edit-user-role'),
-    btnEditUserCancel: document.getElementById('btn-edit-user-cancel')
+    btnEditUserCancel: document.getElementById('btn-edit-user-cancel'),
+
+    // Auth toggle buttons (replaced inline onclick)
+    btnShowRegister: document.getElementById('btn-show-register'),
+    btnShowLogin: document.getElementById('btn-show-login')
 };
 
 // ============================================================================
@@ -534,6 +599,10 @@ function showAuthCard(cardType) {
     if (cardType === 'login') DOM.loginCard.classList.remove('hidden');
     if (cardType === 'register') DOM.registerCard.classList.remove('hidden');
 }
+
+// Event-listener-based auth card switching (no inline onclick)
+DOM.btnShowRegister.addEventListener('click', () => showAuthCard('register'));
+DOM.btnShowLogin.addEventListener('click', () => showAuthCard('login'));
 
 DOM.loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -582,7 +651,7 @@ DOM.registerForm.addEventListener('submit', async (e) => {
     `.trim();
 
     const newUser = {
-        id: "TTS-SRV-" + Math.floor(1000 + Math.random() * 9000),
+        id: crypto.randomUUID(),
         name,
         email,
         password_hash: await DB.hashPassword(pass),
@@ -607,6 +676,7 @@ DOM.registerForm.addEventListener('submit', async (e) => {
 
 DOM.btnLogOut.addEventListener('click', () => {
     State.currentUser = null;
+    sessionStorage.removeItem('tts_session_user_id');
     DOM.authView.classList.remove('hidden');
     DOM.loginForm.reset();
     DOM.registerForm.reset();
@@ -615,10 +685,11 @@ DOM.btnLogOut.addEventListener('click', () => {
 
 async function initializeSession(user) {
     State.currentUser = user;
+    sessionStorage.setItem('tts_session_user_id', user.id);
     DOM.authView.classList.add('hidden');
 
     DOM.userDisplayName.textContent = user.name;
-    DOM.userDisplayId.textContent = `ID: ${user.id} (${user.role.toUpperCase()})`;
+    DOM.userDisplayId.textContent = `ID: ${user.id.substring(0, 12)}… (${user.role.toUpperCase()})`;
 
     if (user.role === 'admin') {
         DOM.btnAdminTrigger.classList.remove('hidden');
@@ -627,6 +698,9 @@ async function initializeSession(user) {
     }
 
     DOM.editorInstructions.value = user.custom_instructions || "";
+
+    // Update sidebar status labels
+    updateSidebarStatus(user);
 
     const globalSettings = DB.getGlobalSettings();
     if (globalSettings.default_ai_mode === 'simulated') {
@@ -640,25 +714,77 @@ async function initializeSession(user) {
     showToast("Welcome", `Connected as ${user.name}`, "success");
 }
 
+/**
+ * Try to restore a previous session from sessionStorage
+ */
+async function tryRestoreSession() {
+    const savedUserId = sessionStorage.getItem('tts_session_user_id');
+    if (!savedUserId) return false;
+
+    const users = DB.getUsers();
+    const user = users.find(u => u.id === savedUserId);
+    if (user && user.status === 'approved') {
+        await initializeSession(user);
+        return true;
+    }
+    sessionStorage.removeItem('tts_session_user_id');
+    return false;
+}
+
+/**
+ * Update sidebar persona/KB status labels to reflect actual state
+ */
+function updateSidebarStatus(user) {
+    if (!user) return;
+
+    if (user.persona_filename) {
+        DOM.personaStatus.textContent = `✓ ${user.persona_filename}`;
+        DOM.personaStateLabel.textContent = 'Loaded';
+        DOM.personaStateLabel.className = 'text-emerald-500 font-semibold';
+    } else {
+        DOM.personaStatus.textContent = 'Ready to upload';
+        DOM.personaStateLabel.textContent = 'Missing';
+        DOM.personaStateLabel.className = 'text-slate-400';
+    }
+
+    if (user.kb_filename) {
+        DOM.kbStatus.textContent = `✓ ${user.kb_filename}`;
+        DOM.kbStateLabel.textContent = 'Loaded';
+        DOM.kbStateLabel.className = 'text-emerald-500 font-semibold';
+    } else {
+        DOM.kbStatus.textContent = 'Ready to upload';
+        DOM.kbStateLabel.textContent = 'Missing';
+        DOM.kbStateLabel.className = 'text-slate-400';
+    }
+}
+
 // ============================================================================
 // TOAST NOTIFICATIONS
 // ============================================================================
 
 function showToast(title, message, type = 'info') {
+    // Clear any pending toast timeout to prevent stacking
+    if (State.toastTimeoutId) {
+        clearTimeout(State.toastTimeoutId);
+        State.toastTimeoutId = null;
+    }
+
     DOM.toastTitle.textContent = title;
     DOM.toastMessage.textContent = message;
 
-    const iconClass = {
-        'success': 'fa-circle-check text-green-400',
-        'error': 'fa-circle-exclamation text-red-400',
-        'info': 'fa-circle-info text-tts-cyan'
-    };
+    let icon = 'fa-circle-info text-tts-cyan';
+    if (type === 'success') {
+        icon = 'fa-circle-check text-green-400';
+    } else if (type === 'error') {
+        icon = 'fa-circle-exclamation text-red-400';
+    }
 
-    DOM.toastIcon.className = `fa-solid ${iconClass[type] || iconClass['info']}`;
+    DOM.toastIcon.className = `fa-solid ${icon}`;
     DOM.toast.classList.remove('translate-x-[150%]');
 
-    setTimeout(() => {
+    State.toastTimeoutId = setTimeout(() => {
         DOM.toast.classList.add('translate-x-[150%]');
+        State.toastTimeoutId = null;
     }, 4000);
 }
 
@@ -672,14 +798,25 @@ function renderLogs() {
     DOM.historyList.innerHTML = '';
 
     if (logs.length === 0) {
-        DOM.historyList.innerHTML = `<li class="text-xs text-slate-400 italic p-2 text-center">No history yet</li>`;
+        const placeholder = document.createElement('li');
+        placeholder.className = "text-xs text-slate-400 italic p-2 text-center";
+        placeholder.textContent = "No history yet";
+        DOM.historyList.appendChild(placeholder);
         return;
     }
 
     logs.forEach(log => {
         const li = document.createElement('li');
         li.className = "text-xs text-slate-600 hover:text-tts-blue cursor-pointer truncate p-2 hover:bg-slate-100 rounded-lg transition-all";
-        li.innerHTML = `${escapeHtml(log.title)} <span class="text-[9px] text-slate-400">${log.time}</span>`;
+        
+        const textNode = document.createTextNode(log.title + ' ');
+        li.appendChild(textNode);
+
+        const span = document.createElement('span');
+        span.className = "text-[9px] text-slate-400";
+        span.textContent = log.time;
+        li.appendChild(span);
+
         li.addEventListener('click', () => {
             DOM.chatInput.value = log.title;
             DOM.chatInput.focus();
@@ -718,8 +855,8 @@ DOM.personaUpload.addEventListener('change', (e) => {
             DB.saveUsers(users);
             State.currentUser = users[idx];
             ContextEngine.rebuildCollectionIndex(State.currentUser.id);
+            updateSidebarStatus(State.currentUser);
             showToast("Uploaded", "Persona file loaded.", "success");
-            DOM.personaStatus.textContent = `✓ ${file.name}`;
         }
     };
     reader.readAsText(file);
@@ -744,8 +881,8 @@ DOM.kbUpload.addEventListener('change', (e) => {
             DB.saveUsers(users);
             State.currentUser = users[idx];
             ContextEngine.rebuildCollectionIndex(State.currentUser.id);
+            updateSidebarStatus(State.currentUser);
             showToast("Uploaded", "Knowledge base loaded.", "success");
-            DOM.kbStatus.textContent = `✓ ${file.name}`;
         }
     };
     reader.readAsText(file);
@@ -788,11 +925,23 @@ function appendChatBubble(text, isUser = false) {
 
     const avatar = document.createElement('div');
     avatar.className = `w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm border ${isUser ? 'bg-tts-cyan text-tts-dark border-cyan-300' : 'bg-tts-dark text-white border-slate-700'}`;
-    avatar.innerHTML = isUser ? '<i class="fa-solid fa-user text-md"></i>' : '<i class="fa-solid fa-robot text-md"></i>';
+    const icon = document.createElement('i');
+    icon.className = `fa-solid ${isUser ? 'fa-user' : 'fa-robot'} text-md`;
+    avatar.appendChild(icon);
 
     const bubble = document.createElement('div');
     bubble.className = `px-5 py-3.5 shadow-sm max-w-[85%] text-sm leading-relaxed border ${isUser ? 'bg-tts-blue text-white border-blue-900 rounded-2xl rounded-tr-none' : 'bg-white text-slate-800 border-slate-200 rounded-2xl rounded-tl-none'}`;
-    bubble.innerHTML = isUser ? escapeHtml(text) : sanitizeHTML(text);
+    
+    if (isUser) {
+        bubble.textContent = text;
+    } else {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(sanitizeHTML(text), 'text/html');
+        const container = doc.body;
+        while (container.firstChild) {
+            bubble.appendChild(container.firstChild);
+        }
+    }
 
     wrapper.appendChild(avatar);
     wrapper.appendChild(bubble);
@@ -869,7 +1018,7 @@ function loadAdminSettings() {
     const settings = DB.getGlobalSettings();
     DOM.settingAdminAiMode.value = settings.default_ai_mode || "simulated";
     DOM.settingAdminModelName.value = settings.default_model_name || "gemini-2.5-flash";
-    DOM.settingAdminApiKey.value = settings.global_api_key ? SecureCredentialVault.deobfuscate(settings.global_api_key) : "";
+    DOM.settingAdminApiKey.value = settings.global_api_key ? CredentialVault.deobfuscate(settings.global_api_key) : "";
 }
 
 DOM.btnAdminSaveLlm.addEventListener('click', async () => {
@@ -878,7 +1027,7 @@ DOM.btnAdminSaveLlm.addEventListener('click', async () => {
     const model = DOM.settingAdminModelName.value.trim();
 
     const settings = {
-        global_api_key: plainKey ? SecureCredentialVault.obfuscate(plainKey) : "",
+        global_api_key: plainKey ? CredentialVault.obfuscate(plainKey) : "",
         default_ai_mode: mode,
         default_model_name: model
     };
@@ -895,23 +1044,78 @@ function renderAdminUserTable() {
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-900 border-b border-slate-850 cursor-pointer text-xs transition-colors";
 
-        let statusBadge = user.status === 'approved' ?
-            '<span class="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 text-[10px] font-bold">Approved</span>' :
-            '<span class="px-2 py-0.5 rounded-full bg-amber-950 text-amber-400 text-[10px] font-bold">Pending</span>';
+        const tdName = document.createElement('td');
+        tdName.className = "p-2";
+        tdName.textContent = user.name;
 
-        tr.innerHTML = `
-            <td class="p-2">${escapeHtml(user.name)}</td>
-            <td class="p-2">${escapeHtml(user.email)}</td>
-            <td class="p-2"><span class="text-slate-400">${user.role}</span></td>
-            <td class="p-2">${statusBadge}</td>
-            <td class="p-2 text-center space-x-1">
-                <button type="button" class="px-2 py-1 bg-slate-700 text-xs rounded hover:bg-slate-600 edit-user-btn" data-id="${user.id}">Edit</button>
-                <button type="button" class="px-2 py-1 bg-red-700 text-xs rounded hover:bg-red-600 delete-user-btn" data-id="${user.id}">Delete</button>
-            </td>
-        `;
+        const tdEmail = document.createElement('td');
+        tdEmail.className = "p-2";
+        tdEmail.textContent = user.email;
+
+        const tdRole = document.createElement('td');
+        tdRole.className = "p-2";
+        const spanRole = document.createElement('span');
+        spanRole.className = "text-slate-400";
+        spanRole.textContent = user.role;
+        tdRole.appendChild(spanRole);
+
+        const tdStatus = document.createElement('td');
+        tdStatus.className = "p-2";
+        const statusSpan = document.createElement('span');
+        statusSpan.className = "px-2 py-0.5 rounded-full text-[10px] font-bold";
+        if (user.status === 'approved') {
+            statusSpan.className += " bg-emerald-950 text-emerald-400";
+            statusSpan.textContent = "Approved";
+        } else {
+            statusSpan.className += " bg-amber-950 text-amber-400";
+            statusSpan.textContent = "Pending";
+        }
+        tdStatus.appendChild(statusSpan);
+
+        const tdActions = document.createElement('td');
+        tdActions.className = "p-2 text-center space-x-1";
+
+        if (user.status === 'pending') {
+            const btnApprove = document.createElement('button');
+            btnApprove.type = "button";
+            btnApprove.className = "px-2 py-1 bg-emerald-700 text-xs rounded hover:bg-emerald-600 approve-user-btn text-white";
+            btnApprove.dataset.id = user.id;
+            btnApprove.textContent = "Approve";
+            tdActions.appendChild(btnApprove);
+            tdActions.appendChild(document.createTextNode(' '));
+        }
+
+        const btnEdit = document.createElement('button');
+        btnEdit.type = "button";
+        btnEdit.className = "px-2 py-1 bg-slate-700 text-xs rounded hover:bg-slate-600 edit-user-btn text-white";
+        btnEdit.dataset.id = user.id;
+        btnEdit.textContent = "Edit";
+        tdActions.appendChild(btnEdit);
+        tdActions.appendChild(document.createTextNode(' '));
+
+        const btnDelete = document.createElement('button');
+        btnDelete.type = "button";
+        btnDelete.className = "px-2 py-1 bg-red-700 text-xs rounded hover:bg-red-600 delete-user-btn text-white";
+        btnDelete.dataset.id = user.id;
+        btnDelete.textContent = "Delete";
+        tdActions.appendChild(btnDelete);
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdEmail);
+        tr.appendChild(tdRole);
+        tr.appendChild(tdStatus);
+        tr.appendChild(tdActions);
 
         tr.addEventListener('click', () => showUserDetails(user.id));
         DOM.adminUserTableBody.appendChild(tr);
+    });
+
+    // Approve buttons
+    document.querySelectorAll('.approve-user-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            approveUser(btn.dataset.id);
+        });
     });
 
     document.querySelectorAll('.edit-user-btn').forEach(btn => {
@@ -929,6 +1133,17 @@ function renderAdminUserTable() {
     });
 }
 
+function approveUser(id) {
+    const users = DB.getUsers();
+    const idx = users.findIndex(u => u.id === id);
+    if (idx !== -1) {
+        users[idx].status = 'approved';
+        DB.saveUsers(users);
+        showToast("Approved", `${users[idx].name} has been approved.`, "success");
+        renderAdminUserTable();
+    }
+}
+
 function showUserDetails(id) {
     const users = DB.getUsers();
     const user = users.find(u => u.id === id);
@@ -936,14 +1151,31 @@ function showUserDetails(id) {
 
     State.selectedDetailUserId = id;
     DOM.adminUserDetailView.classList.remove('hidden');
-    DOM.userDetailsBody.innerHTML = `
-        <div><strong>ID:</strong> ${escapeHtml(user.id)}</div>
-        <div><strong>Name:</strong> ${escapeHtml(user.name)}</div>
-        <div><strong>Email:</strong> ${escapeHtml(user.email)}</div>
-        <div><strong>Role:</strong> ${user.role}</div>
-        <div><strong>Status:</strong> ${user.status}</div>
-        <div><strong>Instructions:</strong> ${user.custom_instructions ? user.custom_instructions.substring(0, 100) + '...' : 'None'}</div>
-    `;
+    DOM.userDetailsBody.innerHTML = '';
+
+    const createDetailDiv = (label, value) => {
+        const div = document.createElement('div');
+        const strong = document.createElement('strong');
+        strong.textContent = label + ': ';
+        div.appendChild(strong);
+        div.appendChild(document.createTextNode(value));
+        return div;
+    };
+
+    DOM.userDetailsBody.appendChild(createDetailDiv('ID', user.id));
+    DOM.userDetailsBody.appendChild(createDetailDiv('Name', user.name));
+    DOM.userDetailsBody.appendChild(createDetailDiv('Email', user.email));
+    DOM.userDetailsBody.appendChild(createDetailDiv('Role', user.role));
+    DOM.userDetailsBody.appendChild(createDetailDiv('Status', user.status));
+    
+    const createdStr = user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown';
+    DOM.userDetailsBody.appendChild(createDetailDiv('Created', createdStr));
+
+    const loginStr = user.last_login ? new Date(user.last_login).toLocaleString() : 'Never';
+    DOM.userDetailsBody.appendChild(createDetailDiv('Last Login', loginStr));
+
+    const instStr = user.custom_instructions ? user.custom_instructions.substring(0, 100) + '...' : 'None';
+    DOM.userDetailsBody.appendChild(createDetailDiv('Instructions', instStr));
 }
 
 DOM.formAdminAddUser.addEventListener('submit', async (e) => {
@@ -953,6 +1185,11 @@ DOM.formAdminAddUser.addEventListener('submit', async (e) => {
     const password = DOM.addUserPassword.value;
     const role = DOM.addUserRole.value;
 
+    if (password.length < 8) {
+        showToast("Weak Password", "Password must be at least 8 characters.", "error");
+        return;
+    }
+
     const users = DB.getUsers();
     if (users.some(u => u.email === email)) {
         showToast("Error", "Email already exists.", "error");
@@ -960,7 +1197,7 @@ DOM.formAdminAddUser.addEventListener('submit', async (e) => {
     }
 
     const newUser = {
-        id: "TTS-SRV-" + Math.floor(1000 + Math.random() * 9000),
+        id: crypto.randomUUID(),
         name,
         email,
         password_hash: await DB.hashPassword(password),
@@ -990,7 +1227,8 @@ function openEditUserModal(id) {
     DOM.editUserId.value = user.id;
     DOM.editUserName.value = user.name;
     DOM.editUserEmail.value = user.email;
-    DOM.editUserPassword.value = "••••••••";
+    DOM.editUserPassword.value = "";
+    DOM.editUserPassword.placeholder = "Leave blank to keep current";
     DOM.editUserRole.value = user.role;
     DOM.editUserModal.classList.remove('hidden');
 }
@@ -1012,7 +1250,12 @@ DOM.formAdminEditUser.addEventListener('submit', async (e) => {
     if (idx !== -1) {
         users[idx].name = name;
         users[idx].email = email;
-        if (!password.includes('•')) {
+        // Only update password if a new one is provided
+        if (password.length > 0) {
+            if (password.length < 8) {
+                showToast("Weak Password", "Password must be at least 8 characters.", "error");
+                return;
+            }
             users[idx].password_hash = await DB.hashPassword(password);
         }
         users[idx].role = role;
@@ -1028,6 +1271,12 @@ function openDeleteConfirmModal(id) {
     const user = users.find(u => u.id === id);
     if (!user) return;
 
+    // Prevent admin from deleting themselves
+    if (State.currentUser && id === State.currentUser.id) {
+        showToast("Denied", "You cannot delete your own account.", "error");
+        return;
+    }
+
     State.deleteTargetUserId = id;
     DOM.deleteTargetUsername.textContent = `${user.name} (${user.email})`;
     DOM.deleteConfirmModal.classList.remove('hidden');
@@ -1040,6 +1289,14 @@ DOM.btnDeleteCancel.addEventListener('click', () => {
 
 DOM.btnDeleteConfirm.addEventListener('click', () => {
     if (!State.deleteTargetUserId) return;
+
+    // Double-check self-deletion guard
+    if (State.currentUser && State.deleteTargetUserId === State.currentUser.id) {
+        showToast("Denied", "You cannot delete your own account.", "error");
+        DOM.deleteConfirmModal.classList.add('hidden');
+        State.deleteTargetUserId = null;
+        return;
+    }
 
     const users = DB.getUsers();
     const idx = users.findIndex(u => u.id === State.deleteTargetUserId);
@@ -1055,12 +1312,40 @@ DOM.btnDeleteConfirm.addEventListener('click', () => {
 });
 
 // ============================================================================
+// DIAGNOSTICS
+// ============================================================================
+
+DOM.btnStressTest.addEventListener('click', () => {
+    const summary = Observability.getSummary();
+    const lines = [
+        `**System Diagnostics Report**`,
+        ``,
+        `**LLM Queries:** ${summary.llm.count} total`,
+        `  • Avg latency: ${summary.llm.avg}ms | P50: ${summary.llm.p50}ms | P95: ${summary.llm.p95}ms`,
+        ``,
+        `**Retrieval Ops:** ${summary.retrieval.count} total`,
+        `  • Avg latency: ${summary.retrieval.avg}ms | P50: ${summary.retrieval.p50}ms | P95: ${summary.retrieval.p95}ms`,
+        ``,
+        `**OCR Scans:** ${summary.ocr.count} total`,
+        `  • Avg latency: ${summary.ocr.avg}ms | P50: ${summary.ocr.p50}ms | P95: ${summary.ocr.p95}ms`,
+        ``,
+        `**Error Events:** ${summary.errors}`,
+        `**User:** ${State.currentUser?.name || 'None'}`,
+        `**Engine:** ${DB.getGlobalSettings().default_ai_mode}`,
+        `**Index Size:** ${Object.keys(BackgroundIndexer.indices).length} user indices`,
+    ];
+
+    appendChatBubble(lines.join('\n'), false);
+    showToast("Diagnostics", "System report generated.", "info");
+});
+
+// ============================================================================
 // OCR SCREENSHOT
 // ============================================================================
 
 DOM.btnScreenshot.addEventListener('click', () => {
     if (typeof html2canvas === 'undefined') {
-        showToast("OCR Disabled", "html2canvas library not loaded.", "error");
+        showToast("OCR Disabled", "html2canvas library not loaded. Include it via CDN or npm.", "error");
         return;
     }
     DOM.ocrOverlay.classList.remove('hidden');
@@ -1071,24 +1356,48 @@ DOM.btnCancelOcr.addEventListener('click', () => {
 });
 
 DOM.btnExecuteOcr.addEventListener('click', async () => {
+    const tStart = performance.now();
     showToast("Processing", "Capturing and analyzing screenshot...", "info");
+
+    // Show progress UI
+    DOM.ocrLoader.classList.remove('hidden');
+    DOM.ocrProgressBar.style.width = '0%';
+    DOM.ocrStatusText.textContent = 'Initializing OCR engine...';
 
     try {
         if (typeof html2canvas === 'undefined' || typeof Tesseract === 'undefined') {
-            throw new Error("Required libraries not loaded");
+            throw new Error("Required libraries not loaded (html2canvas and/or Tesseract.js)");
         }
+
+        DOM.ocrStatusText.textContent = 'Capturing screenshot...';
+        DOM.ocrProgressBar.style.width = '10%';
 
         const canvas = await html2canvas(document.body);
         const imageURL = canvas.toDataURL('image/png');
 
-        Tesseract.recognize(imageURL, 'eng', { logger: progress => {} }).then(({ data: { text } }) => {
+        DOM.ocrStatusText.textContent = 'Running OCR recognition...';
+        DOM.ocrProgressBar.style.width = '20%';
+
+        Tesseract.recognize(imageURL, 'eng', {
+            logger: progress => {
+                if (progress.status === 'recognizing text') {
+                    const pct = Math.round(20 + progress.progress * 80);
+                    DOM.ocrProgressBar.style.width = `${pct}%`;
+                    DOM.ocrStatusText.textContent = `Recognizing text... ${Math.round(progress.progress * 100)}%`;
+                }
+            }
+        }).then(({ data: { text } }) => {
+            const tEnd = performance.now();
+            Observability.addTimelineMetric('ocr', (tEnd - tStart) / 1000);
             appendChatBubble(`**OCR Extracted Text:**\n\n${text}`, false);
             DOM.ocrOverlay.classList.add('hidden');
+            DOM.ocrLoader.classList.add('hidden');
             showToast("Complete", "OCR analysis finished.", "success");
         });
     } catch (err) {
         console.error(err);
-        showToast("Error", "OCR processing failed.", "error");
+        DOM.ocrLoader.classList.add('hidden');
+        showToast("Error", `OCR processing failed: ${err.message}`, "error");
     }
 });
 
@@ -1108,8 +1417,16 @@ function sanitizeHTML(html) {
 }
 
 function escapeHtml(text) {
-    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-    return text.replace(/[&<>"']/g, m => map[m]);
+    return String(text).replace(/[&<>"']/g, m => {
+        switch (m) {
+            case '&': return '&amp;';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot;';
+            case "'": return '&#039;';
+            default: return m;
+        }
+    });
 }
 
 // ============================================================================
@@ -1118,7 +1435,13 @@ function escapeHtml(text) {
 
 window.addEventListener('DOMContentLoaded', async () => {
     await DB.init();
-    DOM.loginEmail.value = "admin@tts.com";
-    DOM.loginPass.value = ""; // Don't auto-fill passwords!
+
+    // Try to restore a previous session
+    const restored = await tryRestoreSession();
+    if (!restored) {
+        DOM.loginEmail.value = "";
+        DOM.loginPass.value = "";
+    }
+
     showToast("Ready", "TTS Copilot initialized.", "info");
 });

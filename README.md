@@ -18,7 +18,7 @@ Enterprise-grade desktop application for AI-powered survey design and analytics.
 - ✅ Local TF-IDF lexical search with knowledge base integration
 - ✅ OCR screenshot analysis (Tesseract.js)
 - ✅ Offline-capable with simulated AI mode
-- ✅ Secure API key management (Base64 encryption)
+- ✅ Secure API key management (Base64 obfuscation/vaulting)
 
 ### Admin Features
 - User account management (CRUD)
@@ -28,7 +28,7 @@ Enterprise-grade desktop application for AI-powered survey design and analytics.
 
 ### Security
 - Client-side password hashing (SHA-256)
-- Encrypted API key storage
+- Obfuscated API key vaulting
 - XSS protection via HTML sanitization
 - Secure file upload validation (10MB personas, 50MB KB)
 - CORS-restricted API calls
@@ -212,7 +212,7 @@ signtool sign /f certificate.pfx /p password /t http://timestamp.server.com /fd 
 - ✅ File upload size limits
 
 ### TODO for Production
-- [ ] Implement bcrypt password hashing (server-side)
+- [ ] Implement bcrypt password hashing (via Tauri commands)
 - [ ] Add SSL/TLS certificate pinning
 - [ ] Enable window security headers
 - [ ] Implement audit logging

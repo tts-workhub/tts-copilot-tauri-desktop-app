@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="TTS Copilot — Enterprise AI-powered survey design and modeling suite. Secure, offline-capable desktop application by Tech & Talent Solutions.">
+    <meta name="theme-color" content="#0A192F">
+    <link rel="icon" href="/assets/logo-fallback.svg" type="image/svg+xml">
     <title>TTS Copilot - Survey Modeling Suite (Enterprise Admin)</title>
     
-    <!-- Local Tailwind CSS (bundled) -->
-    <link rel="stylesheet" href="/css/tailwind.min.css">
-    <!-- Local FontAwesome Icons -->
-    <link rel="stylesheet" href="/css/fontawesome.min.css">
-    <!-- Local Styles -->
+    <!-- Tailwind CSS: CDN fallback (bundled file takes priority if populated) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons: CDN fallback -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Local overrides -->
     <link rel="stylesheet" href="/css/app.css">
 
     <script>
@@ -67,7 +70,7 @@
             </form>
             
             <p class="text-center text-xs text-slate-400 mt-6">
-                Don't have an account? <button onclick="showAuthCard('register')" type="button" class="text-tts-cyan font-semibold hover:underline">Create Account</button>
+                Don't have an account? <button id="btn-show-register" type="button" class="text-tts-cyan font-semibold hover:underline">Create Account</button>
             </p>
         </div>
 
@@ -98,7 +101,7 @@
             </form>
             
             <p class="text-center text-xs text-slate-400 mt-6">
-                Already registered? <button onclick="showAuthCard('login')" type="button" class="text-tts-cyan font-semibold hover:underline">Log In</button>
+                Already registered? <button id="btn-show-login" type="button" class="text-tts-cyan font-semibold hover:underline">Log In</button>
             </p>
         </div>
     </div>
@@ -218,7 +221,7 @@
             <!-- Input Controls -->
             <div class="w-full bg-white border-t border-slate-200 p-4 shadow-[0_-4px_15px_rgba(0,0,0,0.03)] z-10 flex-shrink-0">
                 <div class="flex gap-3">
-                    <input id="chat-input" type="text" placeholder="Ask TTS Copilot..." class="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-tts-cyan" autofocus>
+                    <input id="chat-input" type="text" placeholder="Ask TTS Copilot..." class="flex-1 px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:border-tts-cyan" autofocus aria-label="Chat input">
                     <button id="btn-get-answer" type="button" class="px-4 py-2 bg-tts-blue hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all" title="Send query (Enter)">
                         <i class="fa-solid fa-paper-plane mr-1"></i> Send
                     </button>
@@ -327,7 +330,7 @@
                         <h3 class="text-white text-sm font-bold mb-3">LLM Configuration</h3>
                         <div class="space-y-3 text-xs">
                             <div>
-                                <label class="text-slate-300 block mb-1">API Key (Base64 Encrypted)</label>
+                                <label class="text-slate-300 block mb-1">API Key (Stored Locally)</label>
                                 <input id="setting-admin-api-key" type="password" placeholder="Your API key here" class="w-full px-2 py-1.5 bg-slate-700 text-white rounded border border-slate-600 focus:outline-none focus:border-tts-cyan font-mono" autocomplete="off">
                             </div>
                             <div>
@@ -412,7 +415,6 @@
         </div>
     </div>
 
-    <!-- Inline Script (Will be split to external JS file) -->
     <script src="/js/app.js"></script>
 </body>
 </html>
