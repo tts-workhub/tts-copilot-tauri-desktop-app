@@ -1,9 +1,9 @@
 {
   "build": {
     "beforeDevCommand": "echo 'Dev mode'",
-    "devPath": "./public",
+    "devPath": "../public",
     "beforeBuildCommand": "echo 'Building...'",
-    "distDir": "./public"
+    "distDir": "../public"
   },
   "package": {
     "productName": "TTS Copilot",

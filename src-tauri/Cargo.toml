@@ -4,7 +4,7 @@ version = "1.0.0"
 description = "TTS Copilot - Survey Modeling Suite for Enterprise"
 authors = ["Tech & Talent Solutions"]
 license = "MIT"
-repository = "https://github.com/yourusername/tts-copilot"
+repository = "https://github.com/tts-workhub/tts-copilot-tauri-desktop-app"
 edition = "2021"
 
 [build-dependencies]
@@ -13,7 +13,7 @@ tauri-build = { version = "1.5", features = [] }
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.5", features = ["window-all", "dialog-all", "http-all", "fs-all"] }
+tauri = { version = "1.5", features = [ "clipboard-read-text", "dialog-confirm", "clipboard-write-text", "os-all", "path-all", "dialog-save", "dialog-message", "dialog-open", "dialog-ask", "window-all", "http-all", "fs-all", "custom-protocol"] }
 
 [[bin]]
 name = "tts-copilot"

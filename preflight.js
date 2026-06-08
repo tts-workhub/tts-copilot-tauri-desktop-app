@@ -5,9 +5,9 @@
  * Validates environment and dependencies
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
 
 const checks = {
     node: () => {
@@ -47,12 +47,13 @@ const checks = {
 
     projectStructure: () => {
         const missing = [];
-        if (!fs.existsSync('./tauri.conf.json')) missing.push('tauri.conf.json');
+        if (!fs.existsSync('./src-tauri/tauri.conf.json')) missing.push('src-tauri/tauri.conf.json');
         if (!fs.existsSync('./package.json')) missing.push('package.json');
         if (!fs.existsSync('./src-tauri/Cargo.toml')) missing.push('src-tauri/Cargo.toml');
         if (!fs.existsSync('./src-tauri/src/main.rs')) missing.push('src-tauri/src/main.rs');
         if (!fs.existsSync('./public/index.html')) missing.push('public/index.html');
         if (!fs.existsSync('./public/js/app.js')) missing.push('public/js/app.js');
+        if (!fs.existsSync('./src-tauri/icons')) missing.push('src-tauri/icons');
 
         return missing.length === 0 
             ? `✅ All required files present` 
